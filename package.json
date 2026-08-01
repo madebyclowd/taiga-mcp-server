@@ -11,8 +11,12 @@
   "exports": {
     ".": "./dist/index.js"
   },
+  "bin": {
+    "server-taiga": "./dist/cli.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "package.json"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -26,6 +30,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "pino": "^9.5.0",
     "zod": "^3.24.1"
   },

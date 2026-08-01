@@ -15,3 +15,6 @@ export {
   type TaigaFieldError,
 } from "./errors/taiga-error.js";
 export { createLogger, type CreateLoggerOptions } from "./lib/logger.js";
+export { loadConfigFromEnv, type ServerConfig } from "./config.js";
+export { createServer, main } from "./server.js";
+export { registerTools } from "./tools/index.js";
