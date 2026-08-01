@@ -1,0 +1,12 @@
+dist
+coverage
+pnpm-lock.yaml
+.changeset/*.md
+
+# Shared multi-project agent-docs vault (symlinked) and its generated
+# rule blocks — not part of this package, not ours to reformat.
+ai-docs
+ai-global-rules
+llms.txt
+AGENTS.md
+CLAUDE.md
