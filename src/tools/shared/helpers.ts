@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { TaigaApiError } from "../errors/taiga-error.js";
+import { TaigaApiError } from "../../errors/taiga-error.js";
 
 function jsonResult(data: unknown): CallToolResult {
   // JSON.stringify(undefined) returns undefined, not a string — a plain

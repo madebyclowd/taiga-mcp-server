@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { TaigaClient } from "../client/taiga-client.js";
-import { handleTool } from "./helpers.js";
-import { rawRequestInput } from "./schemas/raw-request.js";
+import type { TaigaClient } from "../../client/taiga-client.js";
+import { handleTool } from "../shared/helpers.js";
+import { rawRequestInput } from "./schema.js";
 
 /**
  * Escape hatch for everything not hand-typed as a curated tool:

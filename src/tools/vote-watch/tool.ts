@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { TaigaClient } from "../client/taiga-client.js";
-import { handleTool } from "./helpers.js";
-import { RESOURCE_REGISTRY } from "./resource-registry.js";
-import { voteInput, watchInput } from "./schemas/vote-watch.js";
+import type { TaigaClient } from "../../client/taiga-client.js";
+import { handleTool } from "../shared/helpers.js";
+import { RESOURCE_REGISTRY } from "../shared/resource-registry.js";
+import { voteInput, watchInput } from "./schema.js";
 
 /**
  * Taiga's vote/watch actions all return `200` with an **empty body**

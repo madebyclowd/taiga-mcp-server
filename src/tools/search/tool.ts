@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { TaigaClient } from "../client/taiga-client.js";
-import { handleTool } from "./helpers.js";
-import { searchInput } from "./schemas/search.js";
+import type { TaigaClient } from "../../client/taiga-client.js";
+import { handleTool } from "../shared/helpers.js";
+import { searchInput } from "./schema.js";
 
 export function registerSearchTools(
   server: McpServer,

@@ -1,14 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { TaigaClient } from "../client/taiga-client.js";
-import { handleTool } from "./helpers.js";
-import { registerCrudTools } from "./resource-crud.js";
+import type { TaigaClient } from "../../client/taiga-client.js";
+import { handleTool } from "../shared/helpers.js";
+import { registerCrudTools } from "../shared/resource-crud.js";
 import {
   membershipBulkCreateInput,
   membershipCreateInput,
   membershipListInput,
   membershipUpdateInput,
-} from "./schemas/membership.js";
+} from "./schema.js";
 
 const BASE_PATH = "/api/v1/memberships";
 

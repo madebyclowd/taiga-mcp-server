@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z, type ZodRawShape } from "zod";
-import type { TaigaClient } from "../client/taiga-client.js";
+import type { TaigaClient } from "../../client/taiga-client.js";
 import { handleTool } from "./helpers.js";
 
 const idShape = { id: z.number().int().describe("Resource id") };

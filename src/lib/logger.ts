@@ -30,6 +30,17 @@ const REDACT_PATHS = [
   "config.headers.Authorization",
   "*.config.headers.authorization",
   "*.config.headers.Authorization",
+  // `TaigaApiError.params` (the failed request's method/path/query/body)
+  // is copied wholesale into `err.*` by pino's default `err` serializer
+  // (it spreads every own-enumerable property of a logged Error) any
+  // time one is logged via `logger.error({ err }, ...)` — every call
+  // site does this (see server.ts/server-http.ts). `body`/`query` can
+  // carry the same caller-supplied secrets the top-level paths above
+  // target (e.g. a webhook secret passed through the raw-request escape
+  // hatch), so they need redacting at this exact nesting too — fast-redact
+  // has no arbitrary-depth wildcard.
+  "err.params.body",
+  "err.params.query",
 ];
 
 export interface CreateLoggerOptions {

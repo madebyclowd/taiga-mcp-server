@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { TaigaClient } from "../client/taiga-client.js";
-import { handleTool } from "./helpers.js";
-import { RESOURCE_REGISTRY } from "./resource-registry.js";
-import { commentAddInput, commentListInput } from "./schemas/comment.js";
+import type { TaigaClient } from "../../client/taiga-client.js";
+import { handleTool } from "../shared/helpers.js";
+import { RESOURCE_REGISTRY } from "../shared/resource-registry.js";
+import { commentAddInput, commentListInput } from "./schema.js";
 
 /**
  * Taiga has no separate "comment" object — comments live in each
