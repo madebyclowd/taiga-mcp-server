@@ -15,14 +15,21 @@ export {
   type TaigaFieldError,
 } from "./errors/taiga-error.js";
 export { createLogger, type CreateLoggerOptions } from "./lib/logger.js";
-export { loadConfigFromEnv, type ServerConfig } from "./config.js";
-export { createServer, main } from "./server.js";
+export { createServer } from "./server.js";
 export { registerTools } from "./tools/index.js";
-export { loadHttpConfigFromEnv, type HttpServerConfig } from "./http/config.js";
+export {
+  loadConfigFromEnv,
+  type ServerConfig,
+} from "./transports/stdio/config.js";
+export { main } from "./transports/stdio/main.js";
+export {
+  loadHttpConfigFromEnv,
+  type HttpServerConfig,
+} from "./transports/http/config.js";
 export {
   createHttpApp,
   type HttpApp,
   type HttpAppOptions,
-} from "./http/app.js";
-export { SessionManager, type HttpSession } from "./http/session.js";
-export { createHttpServer, main as mainHttp } from "./server-http.js";
+} from "./transports/http/app.js";
+export { SessionManager, type HttpSession } from "./transports/http/session.js";
+export { createHttpServer, main as mainHttp } from "./transports/http/main.js";

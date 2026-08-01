@@ -1,12 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { TaigaClient } from "../client/taiga-client.js";
-import { handleTool } from "./helpers.js";
-import { RESOURCE_REGISTRY } from "./resource-registry.js";
+import type { TaigaClient } from "../../client/taiga-client.js";
+import { handleTool } from "../shared/helpers.js";
+import { RESOURCE_REGISTRY } from "../shared/resource-registry.js";
 import {
   attachmentDeleteInput,
   attachmentListInput,
   attachmentUploadInput,
-} from "./schemas/attachment.js";
+} from "./schema.js";
 
 /**
  * Confirmed live against a real Taiga instance: uploads are

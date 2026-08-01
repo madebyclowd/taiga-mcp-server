@@ -4,7 +4,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import pino from "pino";
-import { createHttpApp, type HttpApp } from "../../../src/http/app.js";
+import {
+  createHttpApp,
+  type HttpApp,
+} from "../../../src/transports/http/app.js";
 
 export const BASE_URL = "https://taiga.example.test";
 
@@ -19,6 +22,7 @@ export async function startTestHttpServer(
     sessionTtlMs?: number;
     allowedOrigins?: string[] | undefined;
     maxBodyBytes?: number;
+    maxSessions?: number;
     fetchImpl?: typeof fetch;
   } = {},
 ): Promise<TestHttpServer> {
@@ -27,6 +31,7 @@ export async function startTestHttpServer(
     sessionTtlMs: overrides.sessionTtlMs ?? 5 * 60 * 1000,
     allowedOrigins: overrides.allowedOrigins,
     maxBodyBytes: overrides.maxBodyBytes,
+    maxSessions: overrides.maxSessions,
     fetchImpl: overrides.fetchImpl,
     logger: pino({ level: "silent" }),
   });

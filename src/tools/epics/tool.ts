@@ -1,13 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { TaigaClient } from "../client/taiga-client.js";
-import {
-  epicCreateInput,
-  epicListInput,
-  epicUpdateInput,
-} from "./schemas/epic.js";
-import { registerCrudTools } from "./resource-crud.js";
-import { handleTool } from "./helpers.js";
+import type { TaigaClient } from "../../client/taiga-client.js";
+import { epicCreateInput, epicListInput, epicUpdateInput } from "./schema.js";
+import { registerCrudTools } from "../shared/resource-crud.js";
+import { handleTool } from "../shared/helpers.js";
 
 const BASE_PATH = "/api/v1/epics";
 

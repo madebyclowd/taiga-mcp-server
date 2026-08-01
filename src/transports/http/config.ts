@@ -4,10 +4,13 @@ export interface HttpServerConfig {
   /** Unset = reflect any Origin (fine for a locally-hosted/team tool; lock down for internet-facing deployments). */
   allowedOrigins: string[] | undefined;
   sessionTtlMs: number;
+  /** Caps concurrent sessions — see `session.ts`'s `SessionManager`. */
+  maxSessions: number;
 }
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_SESSION_TTL_MS = 30 * 60 * 1000;
+const DEFAULT_MAX_SESSIONS = 1000;
 
 /**
  * Deliberately does **not** read `TAIGA_TOKEN`/`TAIGA_USERNAME`/
@@ -50,5 +53,14 @@ export function loadHttpConfigFromEnv(
     );
   }
 
-  return { baseUrl, port, allowedOrigins, sessionTtlMs };
+  const maxSessions = env["HTTP_MAX_SESSIONS"]
+    ? Number(env["HTTP_MAX_SESSIONS"])
+    : DEFAULT_MAX_SESSIONS;
+  if (!Number.isInteger(maxSessions) || maxSessions <= 0) {
+    throw new Error(
+      `HTTP_MAX_SESSIONS must be a positive integer, got: ${env["HTTP_MAX_SESSIONS"]}`,
+    );
+  }
+
+  return { baseUrl, port, allowedOrigins, sessionTtlMs, maxSessions };
 }

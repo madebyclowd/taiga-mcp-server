@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { Logger } from "pino";
-import { SessionManager } from "./session.js";
+import { SessionLimitError, SessionManager } from "./session.js";
 
 export interface HttpAppOptions {
   baseUrl: string;
@@ -10,6 +10,9 @@ export interface HttpAppOptions {
   logger: Logger;
   /** Default 4 MiB — generous for MCP tool-call payloads, small enough to bound abuse. */
   maxBodyBytes?: number | undefined;
+  /** Caps concurrent sessions to bound memory use from unauthenticated
+   * session creation. Default 1000, see `session.ts`. */
+  maxSessions?: number | undefined;
   /** Passed through to each session's `TaigaClient`; injectable for tests. */
   fetchImpl?: typeof fetch | undefined;
 }
@@ -44,6 +47,7 @@ export function createHttpApp(options: HttpAppOptions): HttpApp {
     baseUrl: options.baseUrl,
     sessionTtlMs: options.sessionTtlMs,
     logger: options.logger,
+    maxSessions: options.maxSessions,
     fetchImpl: options.fetchImpl,
   });
 
@@ -132,7 +136,17 @@ export function createHttpApp(options: HttpAppOptions): HttpApp {
       return;
     }
 
-    const { transport } = await sessions.create(token);
+    let transport: Awaited<ReturnType<SessionManager["create"]>>["transport"];
+    try {
+      ({ transport } = await sessions.create(token));
+    } catch (error) {
+      if (error instanceof SessionLimitError) {
+        res.writeHead(503, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: error.message }));
+        return;
+      }
+      throw error;
+    }
     await transport.handleRequest(req, res, body);
   }
 

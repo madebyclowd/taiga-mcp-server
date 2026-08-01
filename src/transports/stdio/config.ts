@@ -1,4 +1,4 @@
-import type { TaigaCredentials } from "./client/types.js";
+import type { TaigaCredentials } from "../../client/types.js";
 
 export interface ServerConfig {
   baseUrl: string;

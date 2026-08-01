@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { Logger } from "pino";
-import { TaigaClient } from "../client/taiga-client.js";
-import { createServer } from "../server.js";
+import { TaigaClient } from "../../client/taiga-client.js";
+import { createServer } from "../../server.js";
 
 export interface HttpSession {
   id: string;
@@ -16,10 +16,26 @@ export interface SessionManagerOptions {
   baseUrl: string;
   sessionTtlMs: number;
   logger: Logger;
+  /** Rejects `create()` once this many sessions are open — an
+   * unauthenticated caller can otherwise open unbounded sessions with
+   * garbage tokens (each held until the TTL sweep) as a memory-exhaustion
+   * DoS. Default 1000. */
+  maxSessions?: number | undefined;
   /** Injectable for tests; defaults to `Date.now`. */
   now?: () => number;
   /** Passed through to each session's `TaigaClient`; injectable for tests. */
   fetchImpl?: typeof fetch | undefined;
+}
+
+const DEFAULT_MAX_SESSIONS = 1000;
+
+/** Thrown by `create()` once the concurrent-session cap is reached — the
+ * HTTP layer maps this to a `503`. */
+export class SessionLimitError extends Error {
+  constructor() {
+    super("Maximum concurrent session limit reached");
+    this.name = "SessionLimitError";
+  }
 }
 
 /**
@@ -36,9 +52,11 @@ export class SessionManager {
   private readonly sessions = new Map<string, HttpSession>();
   private readonly sweepTimer: ReturnType<typeof setInterval>;
   private readonly now: () => number;
+  private readonly maxSessions: number;
 
   constructor(private readonly options: SessionManagerOptions) {
     this.now = options.now ?? (() => Date.now());
+    this.maxSessions = options.maxSessions ?? DEFAULT_MAX_SESSIONS;
     this.sweepTimer = setInterval(
       () => this.sweepExpired(),
       Math.min(options.sessionTtlMs, 60_000),
@@ -50,6 +68,10 @@ export class SessionManager {
   async create(
     token: string,
   ): Promise<{ transport: StreamableHTTPServerTransport }> {
+    if (this.sessions.size >= this.maxSessions) {
+      throw new SessionLimitError();
+    }
+
     const client = new TaigaClient({
       baseUrl: this.options.baseUrl,
       credentials: { kind: "token", token },

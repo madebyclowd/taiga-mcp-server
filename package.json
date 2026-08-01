@@ -12,8 +12,8 @@
     ".": "./dist/index.js"
   },
   "bin": {
-    "server-taiga": "./dist/cli.js",
-    "server-taiga-http": "./dist/http-cli.js"
+    "server-taiga": "./dist/transports/stdio/cli.js",
+    "server-taiga-http": "./dist/transports/http/cli.js"
   },
   "files": [
     "dist",

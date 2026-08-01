@@ -1,13 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { TaigaClient } from "../client/taiga-client.js";
+import type { TaigaClient } from "../../client/taiga-client.js";
 import {
   issueClassificationInput,
   issueCreateInput,
   issueListInput,
   issueUpdateInput,
-} from "./schemas/issue.js";
-import { registerCrudTools } from "./resource-crud.js";
-import { handleTool } from "./helpers.js";
+} from "./schema.js";
+import { registerCrudTools } from "../shared/resource-crud.js";
+import { handleTool } from "../shared/helpers.js";
 
 const BASE_PATH = "/api/v1/issues";
 
