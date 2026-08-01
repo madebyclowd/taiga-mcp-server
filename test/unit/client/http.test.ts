@@ -178,6 +178,62 @@ describe("createHttpRequester", () => {
     ).rejects.toBeInstanceOf(TaigaRateLimitError);
   });
 
+  it("returns undefined for a 200 response with an empty body", async () => {
+    server.use(
+      http.post(
+        `${BASE_URL}/api/v1/user-stories/1/upvote`,
+        () => new HttpResponse("", { status: 200 }),
+      ),
+    );
+
+    const requester = createHttpRequester({
+      baseUrl: BASE_URL,
+      authSession: tokenSession(),
+      logger: silentLogger(),
+    });
+
+    await expect(
+      requester.request({
+        method: "POST",
+        path: "/api/v1/user-stories/1/upvote",
+        body: {},
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("sends a FormData body as-is, without JSON-stringifying or overriding content-type", async () => {
+    server.use(
+      http.post(
+        `${BASE_URL}/api/v1/user-stories/attachments`,
+        async ({ request }) => {
+          expect(request.headers.get("content-type")).toMatch(
+            /^multipart\/form-data/,
+          );
+          const form = await request.formData();
+          expect(form.get("object_id")).toBe("1");
+          return HttpResponse.json({ id: 9 });
+        },
+      ),
+    );
+
+    const requester = createHttpRequester({
+      baseUrl: BASE_URL,
+      authSession: tokenSession(),
+      logger: silentLogger(),
+    });
+
+    const form = new FormData();
+    form.append("object_id", "1");
+
+    await expect(
+      requester.request({
+        method: "POST",
+        path: "/api/v1/user-stories/attachments",
+        body: form,
+      }),
+    ).resolves.toEqual({ id: 9 });
+  });
+
   it("maps a 400 body into structured field errors, never a flat string", async () => {
     server.use(
       http.post(`${BASE_URL}/api/v1/user-stories`, () =>

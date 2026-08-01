@@ -62,7 +62,11 @@ export function createHttpRequester(
       authorization: `Bearer ${token}`,
     };
     const init: RequestInit = { method: reqOptions.method, headers };
-    if (reqOptions.body !== undefined) {
+    if (reqOptions.body instanceof FormData) {
+      // Let fetch set `content-type` itself — it must include the
+      // multipart boundary, which we cannot reproduce by hand.
+      init.body = reqOptions.body;
+    } else if (reqOptions.body !== undefined) {
       headers["content-type"] = "application/json";
       init.body = JSON.stringify(reqOptions.body);
     }
@@ -103,7 +107,11 @@ export function createHttpRequester(
 
       if (response.ok) {
         if (response.status === 204) return undefined as T;
-        return (await response.json()) as T;
+        // Some Taiga actions (e.g. vote/watch toggles) return 200 with an
+        // empty body rather than 204 — `response.json()` throws on empty
+        // input, so read as text first and only parse if non-empty.
+        const text = await response.text();
+        return (text.length === 0 ? undefined : JSON.parse(text)) as T;
       }
 
       const body = await safeReadJson(response);
