@@ -15,6 +15,10 @@ export function registerTaskTools(
     server,
     client,
     resource: "task",
+    resourceTitle: "Task",
+    listDescriptionSuffix:
+      "Use task_filters_data to discover valid status/tags/assigned_to " +
+      "ids cheaply instead of paging through results.",
     basePath: BASE_PATH,
     listInput: taskListInput,
     createInput: taskCreateInput,

@@ -46,6 +46,8 @@ It supports:
 
 - **Projects, epics, user stories, tasks, issues, sprints (milestones), wiki pages, comments (including edit/delete), attachments (including download), project members, voting/watching, ref lookup (`#436` → the right item), batch create, and search.**
 - Assign people by email or full name instead of hunting down a numeric user id — the server resolves it against the project's members for you.
+- Built-in paging and an opt-in `verbosity` setting (`minimal`/`standard`/`full`) on every list/get call, so an AI assistant doesn't have to pull down every field of every item just to answer a simple question — keeps responses small and keeps you from burning through your assistant's context on a single "list my backlog" request.
+- Cheap filter-id lookups (`user_story_filters_data`, `task_filters_data`, `issue_filters_data`) instead of paging through a full list just to find a valid status or tag id.
 - A fallback "raw request" tool for the rare Taiga API endpoint that doesn't have a dedicated tool yet (webhooks, import/export, and similar admin-level features).
 
 ## Before you start
@@ -187,7 +189,9 @@ Plain description of what happens behind the scenes, so you know what to expect:
 - **Tested against the real Taiga API**, not just simulated responses — the automated test suite includes tests that run against an actual Taiga project, in addition to the usual offline tests.
 - Released with **npm provenance** — a signed record proving the published package was built from this exact GitHub repository, not modified or uploaded from somewhere else.
 
-This is an early release (`0.1.0`). It's been tested carefully, including live against the real Taiga API, but it hasn't had real-world use by others yet — if you hit a problem, please [report it](#security).
+### Breaking change in `1.0.0`
+
+Every list-shaped tool (`*_list`, `comment_list`, `attachment_list`, `epic_related_user_stories`, `search`) now returns `{ items, pagination }` instead of a bare array. If you have code parsing one of these responses directly as an array, read `.items` instead. `pagination` is `{ count, current_page, has_next }`. This is the point at which the tool surface's response shapes are considered stable — it's been tested carefully, including live against the real Taiga API, but hasn't had real-world use by others yet, so if you hit a problem, please [report it](#security).
 
 ## Frequently asked questions
 

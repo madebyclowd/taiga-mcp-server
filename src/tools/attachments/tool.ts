@@ -4,6 +4,12 @@ import type { TaigaClient } from "../../client/taiga-client.js";
 import { confirmDestructiveOp } from "../shared/destructive-confirm.js";
 import { handleTool } from "../shared/helpers.js";
 import { RESOURCE_REGISTRY } from "../shared/resource-registry.js";
+import { applyVerbosityToItems } from "../shared/response-fields.js";
+import {
+  DEFAULT_VERBOSITY,
+  paginationShape,
+  verbosityShape,
+} from "../shared/list-params.js";
 import {
   attachmentDeleteInput,
   attachmentDownloadInput,
@@ -36,10 +42,17 @@ export function registerAttachmentTools(
   server.registerTool(
     "attachment_upload",
     {
+      title: "Upload Attachment",
       description:
         "Upload a file attachment to an epic, user story, task, issue, " +
         "or wiki page. File contents are passed as base64.",
       inputSchema: attachmentUploadInput,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async (args) => {
       const entry = RESOURCE_REGISTRY[args.resource];
@@ -66,29 +79,50 @@ export function registerAttachmentTools(
   server.registerTool(
     "attachment_list",
     {
+      title: "List Attachments",
       description:
-        "List attachments on an epic, user story, task, issue, or wiki page.",
-      inputSchema: attachmentListInput,
+        "List attachments on an epic, user story, task, issue, or wiki " +
+        "page. Response is { items, pagination }.",
+      inputSchema: {
+        ...attachmentListInput,
+        ...paginationShape,
+        ...verbosityShape,
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (args) => {
       const entry = RESOURCE_REGISTRY[args.resource];
-      return handleTool("attachment_list", args, () =>
-        client.list(`${entry.basePath}/attachments`, {
-          object_id: args.object_id,
-        }),
-      );
+      return handleTool("attachment_list", args, async () => {
+        const result = await client.listPaginated<Record<string, unknown>[]>(
+          `${entry.basePath}/attachments`,
+          {
+            object_id: args.object_id,
+            page: args.page,
+            page_size: args.page_size,
+          },
+        );
+        return {
+          items: applyVerbosityToItems(
+            result.items,
+            args.verbosity ?? DEFAULT_VERBOSITY,
+          ),
+          pagination: result.pagination,
+        };
+      });
     },
   );
 
   server.registerTool(
     "attachment_download",
     {
+      title: "Download Attachment",
       description:
         "Download an attachment's file contents as base64, along with " +
         `its filename, content type, size, and sha1. Rejects files ` +
         `larger than ${String(MAX_ATTACHMENT_DOWNLOAD_BYTES)} bytes ` +
         "before downloading.",
       inputSchema: attachmentDownloadInput,
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (args) => {
       const entry = RESOURCE_REGISTRY[args.resource];
@@ -122,12 +156,19 @@ export function registerAttachmentTools(
   server.registerTool(
     "attachment_delete",
     {
+      title: "Delete Attachment",
       description:
         "Delete an attachment by id. This cannot be undone. Requires " +
         "confirmation: elicitation-capable clients are prompted " +
         "interactively; others must call again with confirm: true after " +
         "reviewing the preview returned by the first call.",
       inputSchema: attachmentDeleteInput,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async (args) => {
       const entry = RESOURCE_REGISTRY[args.resource];

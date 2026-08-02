@@ -20,6 +20,7 @@ export function registerMilestoneTools(
     server,
     client,
     resource: "milestone",
+    resourceTitle: "Milestone",
     basePath: BASE_PATH,
     listInput: milestoneListInput,
     createInput: milestoneCreateInput,

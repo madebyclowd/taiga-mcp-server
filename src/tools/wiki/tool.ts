@@ -16,6 +16,7 @@ export function registerWikiTools(
     server,
     client,
     resource: "wiki_page",
+    resourceTitle: "Wiki Page",
     basePath: BASE_PATH,
     listInput: wikiListInput,
     createInput: wikiCreateInput,

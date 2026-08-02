@@ -47,8 +47,40 @@ describe("MCP server tool registration", () => {
         "batch_create_issues",
         "batch_create_user_stories",
         "batch_create_tasks",
+        "user_story_filters_data",
+        "task_filters_data",
+        "issue_filters_data",
       ]),
     );
+  });
+
+  it("annotates tools per verb (spot-check across resource-crud and a hand-wired tool)", async () => {
+    const { client } = await createConnectedTestClient();
+    const { tools } = await client.listTools();
+    const byName = new Map(tools.map((tool) => [tool.name, tool]));
+
+    expect(byName.get("project_list")?.annotations).toMatchObject({
+      readOnlyHint: true,
+      openWorldHint: true,
+    });
+    expect(byName.get("project_delete")?.annotations).toMatchObject({
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    });
+    expect(byName.get("project_create")?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+    });
+    expect(byName.get("project_update")?.annotations).toMatchObject({
+      idempotentHint: true,
+    });
+    expect(byName.get("epic_related_user_stories")?.annotations).toMatchObject({
+      readOnlyHint: true,
+      openWorldHint: true,
+    });
+    expect(byName.get("project_list")?.title).toBe("List Projects");
+    expect(byName.get("epic_get")?.title).toBe("Get Epic");
   });
 });
 
@@ -56,7 +88,13 @@ describe("project tools", () => {
   it("project_list returns the mocked collection", async () => {
     server.use(
       http.get(`${BASE_URL}/api/v1/projects`, () =>
-        HttpResponse.json([{ id: 1, name: "Demo" }]),
+        HttpResponse.json([{ id: 1, name: "Demo" }], {
+          headers: {
+            "x-pagination-count": "1",
+            "x-pagination-current": "1",
+            "x-paginated": "true",
+          },
+        }),
       ),
     );
     const { client } = await createConnectedTestClient();
@@ -67,7 +105,10 @@ describe("project tools", () => {
     });
 
     expect(result.isError).toBeFalsy();
-    expect(textOf(result)).toEqual([{ id: 1, name: "Demo" }]);
+    expect(textOf(result)).toEqual({
+      items: [{ id: 1, name: "Demo" }],
+      pagination: { count: 1, current_page: 1, has_next: false },
+    });
   });
 
   it("project_create posts the given fields", async () => {
@@ -186,11 +227,82 @@ describe("project tools", () => {
   });
 });
 
+describe("verbosity (end-to-end through resource-crud.ts)", () => {
+  const wideProject = {
+    id: 5,
+    name: "Demo",
+    owner_extra_info: { full_name: "Alice" },
+    description_html: "<p>x</p>",
+  };
+
+  it("project_get with verbosity: standard drops *_extra_info/*_html fields", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v1/projects/5`, () =>
+        HttpResponse.json(wideProject),
+      ),
+    );
+    const { client } = await createConnectedTestClient();
+
+    const result = await client.callTool({
+      name: "project_get",
+      arguments: { id: 5, verbosity: "standard" },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(textOf(result)).toEqual({ id: 5, name: "Demo" });
+  });
+
+  it("project_get with no verbosity (default full) returns every field", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v1/projects/5`, () =>
+        HttpResponse.json(wideProject),
+      ),
+    );
+    const { client } = await createConnectedTestClient();
+
+    const result = await client.callTool({
+      name: "project_get",
+      arguments: { id: 5 },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(textOf(result)).toEqual(wideProject);
+  });
+
+  it("project_list with verbosity: minimal trims every item in { items, pagination }", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v1/projects`, () =>
+        HttpResponse.json([wideProject], {
+          headers: { "x-pagination-count": "1", "x-pagination-current": "1" },
+        }),
+      ),
+    );
+    const { client } = await createConnectedTestClient();
+
+    const result = await client.callTool({
+      name: "project_list",
+      arguments: { verbosity: "minimal" },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(textOf(result)).toEqual({
+      items: [{ id: 5 }],
+      pagination: { count: 1, current_page: 1, has_next: false },
+    });
+  });
+});
+
 describe("epic extra tools", () => {
   it("epic_related_user_stories lists linked stories", async () => {
     server.use(
       http.get(`${BASE_URL}/api/v1/epics/9/related_userstories`, () =>
-        HttpResponse.json([{ id: 20, subject: "Linked story" }]),
+        HttpResponse.json([{ id: 20, subject: "Linked story" }], {
+          headers: {
+            "x-pagination-count": "1",
+            "x-pagination-current": "1",
+            "x-paginated": "true",
+          },
+        }),
       ),
     );
     const { client } = await createConnectedTestClient();
@@ -201,7 +313,10 @@ describe("epic extra tools", () => {
     });
 
     expect(result.isError).toBeFalsy();
-    expect(textOf(result)).toEqual([{ id: 20, subject: "Linked story" }]);
+    expect(textOf(result)).toEqual({
+      items: [{ id: 20, subject: "Linked story" }],
+      pagination: { count: 1, current_page: 1, has_next: false },
+    });
   });
 
   it("epic_link_user_story posts both epic and user_story ids", async () => {

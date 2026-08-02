@@ -439,11 +439,10 @@ describe.runIf(runIntegration)("Integration: MCP Tools E2E", () => {
       name: "comment_list",
       arguments: { resource: "user_story", id: story.id },
     })) as ToolResponse;
-    const history = JSON.parse(listRes.content[0]?.text ?? "[]") as Array<{
-      id: string;
-      comment?: string;
-    }>;
-    const entry = history.find((h) => h.comment === commentText);
+    const history = JSON.parse(listRes.content[0]?.text ?? "{}") as {
+      items: Array<{ id: string; comment?: string }>;
+    };
+    const entry = history.items.find((h) => h.comment === commentText);
     expect(entry).toBeDefined();
 
     const editRes = (await mcpClient.callTool({
@@ -594,5 +593,92 @@ describe.runIf(runIntegration)("Integration: MCP Tools E2E", () => {
     };
     tracker.track("userstories", story.id);
     expect(story.assigned_to).toBe(currentUserId);
+  });
+
+  it("should paginate user_story_list and surface real pagination metadata", async () => {
+    const subjectA = `E2E Pagination A ${Date.now()}`;
+    const subjectB = `E2E Pagination B ${Date.now()}`;
+    const createA = (await mcpClient.callTool({
+      name: "user_story_create",
+      arguments: { project: projectId, subject: subjectA },
+    })) as ToolResponse;
+    const createB = (await mcpClient.callTool({
+      name: "user_story_create",
+      arguments: { project: projectId, subject: subjectB },
+    })) as ToolResponse;
+    tracker.track("userstories", jsonOf(createA).id);
+    tracker.track("userstories", jsonOf(createB).id);
+
+    const listRes = (await mcpClient.callTool({
+      name: "user_story_list",
+      arguments: { project: projectId, page: 1, page_size: 1 },
+    })) as ToolResponse;
+    expect(listRes.isError).toBeFalsy();
+    const body = JSON.parse(listRes.content[0]?.text ?? "{}") as {
+      items: unknown[];
+      pagination: { count: number; current_page: number; has_next: boolean };
+    };
+    expect(body.items).toHaveLength(1);
+    expect(body.pagination.current_page).toBe(1);
+    expect(body.pagination.has_next).toBe(true);
+    expect(body.pagination.count).toBeGreaterThanOrEqual(2);
+  });
+
+  it("should trim fields per verbosity tier on user_story_get", async () => {
+    const createRes = (await mcpClient.callTool({
+      name: "user_story_create",
+      arguments: {
+        project: projectId,
+        subject: `E2E Verbosity Story ${Date.now()}`,
+        description: "full description text",
+      },
+    })) as ToolResponse;
+    const story = jsonOf(createRes);
+    tracker.track("userstories", story.id);
+
+    const minimalRes = (await mcpClient.callTool({
+      name: "user_story_get",
+      arguments: { id: story.id, verbosity: "minimal" },
+    })) as ToolResponse;
+    const minimal = JSON.parse(minimalRes.content[0]?.text ?? "{}") as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(minimal).sort()).toEqual(
+      [
+        "assigned_to",
+        "id",
+        "is_closed",
+        "project",
+        "ref",
+        "status",
+        "subject",
+      ].sort(),
+    );
+
+    const standardRes = (await mcpClient.callTool({
+      name: "user_story_get",
+      arguments: { id: story.id, verbosity: "standard" },
+    })) as ToolResponse;
+    const standard = JSON.parse(standardRes.content[0]?.text ?? "{}") as Record<
+      string,
+      unknown
+    >;
+    expect(standard["description"]).toBe("full description text");
+    expect(standard["description_html"]).toBeUndefined();
+    expect(standard["assigned_to_extra_info"]).toBeUndefined();
+  });
+
+  it("should get user_story_filters_data for the project", async () => {
+    const result = (await mcpClient.callTool({
+      name: "user_story_filters_data",
+      arguments: { project: projectId },
+    })) as ToolResponse;
+
+    expect(result.isError).toBeFalsy();
+    const data = JSON.parse(result.content[0]?.text ?? "{}") as {
+      statuses: unknown[];
+    };
+    expect(Array.isArray(data.statuses)).toBe(true);
   });
 });

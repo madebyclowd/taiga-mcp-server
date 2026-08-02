@@ -62,7 +62,9 @@ describe("stdio transport stdout safety", () => {
   it("writes only parseable JSON-RPC frames to stdout across a full tool-call cycle", async () => {
     mswServer.use(
       http.get(`${BASE_URL}/api/v1/projects`, () =>
-        HttpResponse.json([{ id: 1 }]),
+        HttpResponse.json([{ id: 1 }], {
+          headers: { "x-pagination-count": "1", "x-pagination-current": "1" },
+        }),
       ),
     );
 

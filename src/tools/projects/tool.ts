@@ -18,6 +18,7 @@ export function registerProjectTools(
     server,
     client,
     resource: "project",
+    resourceTitle: "Project",
     basePath: BASE_PATH,
     listInput: projectListInput,
     createInput: projectCreateInput,

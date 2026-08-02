@@ -33,7 +33,9 @@ describe("comment tools", () => {
   it("comment_list reads the resource's history endpoint", async () => {
     server.use(
       http.get(`${BASE_URL}/api/v1/history/userstory/20`, () =>
-        HttpResponse.json([{ comment: "a comment" }, { comment: "" }]),
+        HttpResponse.json([{ comment: "a comment" }, { comment: "" }], {
+          headers: { "x-pagination-count": "2", "x-pagination-current": "1" },
+        }),
       ),
     );
     const { client } = await createConnectedTestClient();

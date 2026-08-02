@@ -91,12 +91,19 @@ export function registerBatchTools(
   server.registerTool(
     "batch_create_issues",
     {
+      title: "Batch Create Issues",
       description:
         "Create up to 20 issues in one call. Each item is created " +
         "independently — a bad item doesn't fail the others. Returns a " +
         "structured result with per-item success/failure, not a native " +
         "Taiga bulk-create (which can't carry per-item fields).",
       inputSchema: batchCreateIssuesInput,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async (args) =>
       handleTool("batch_create_issues", args, () =>
@@ -107,12 +114,19 @@ export function registerBatchTools(
   server.registerTool(
     "batch_create_user_stories",
     {
+      title: "Batch Create User Stories",
       description:
         "Create up to 20 user stories in one call. Each item is created " +
         "independently — a bad item doesn't fail the others. Returns a " +
         "structured result with per-item success/failure, not a native " +
         "Taiga bulk-create (which can't carry per-item fields).",
       inputSchema: batchCreateUserStoriesInput,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async (args) =>
       handleTool("batch_create_user_stories", args, () =>
@@ -123,6 +137,7 @@ export function registerBatchTools(
   server.registerTool(
     "batch_create_tasks",
     {
+      title: "Batch Create Tasks",
       description:
         "Create up to 20 tasks in one call, each under its own parent " +
         "user story. Each item is created independently — a bad item " +
@@ -130,6 +145,12 @@ export function registerBatchTools(
         "per-item success/failure, not a native Taiga bulk-create (which " +
         "can't carry per-item fields).",
       inputSchema: batchCreateTasksInput,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async (args) =>
       handleTool("batch_create_tasks", args, () =>

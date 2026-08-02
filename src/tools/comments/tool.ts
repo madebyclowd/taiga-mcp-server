@@ -3,6 +3,12 @@ import type { TaigaClient } from "../../client/taiga-client.js";
 import { confirmDestructiveOpGivenSummary } from "../shared/destructive-confirm.js";
 import { handleTool } from "../shared/helpers.js";
 import { RESOURCE_REGISTRY } from "../shared/resource-registry.js";
+import { applyVerbosityToItems } from "../shared/response-fields.js";
+import {
+  DEFAULT_VERBOSITY,
+  paginationShape,
+  verbosityShape,
+} from "../shared/list-params.js";
 import {
   commentAddInput,
   commentDeleteInput,
@@ -40,10 +46,17 @@ export function registerCommentTools(
   server.registerTool(
     "comment_add",
     {
+      title: "Add Comment",
       description:
         "Add a comment to an epic, user story, task, or issue. Goes " +
         "through the same optimistic-concurrency path as a normal update.",
       inputSchema: commentAddInput,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async (args) => {
       const entry = RESOURCE_REGISTRY[args.resource];
@@ -58,27 +71,51 @@ export function registerCommentTools(
   server.registerTool(
     "comment_list",
     {
+      title: "List Comments",
       description:
         "List the comment history for an epic, user story, task, or " +
         "issue. Includes plain field-change history entries too — " +
-        "filter on a non-empty `comment` field for comments only.",
-      inputSchema: commentListInput,
+        "filter on a non-empty `comment` field for comments only. " +
+        "Response is { items, pagination }.",
+      inputSchema: {
+        ...commentListInput,
+        ...paginationShape,
+        ...verbosityShape,
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (args) => {
       const entry = RESOURCE_REGISTRY[args.resource];
-      return handleTool("comment_list", args, () =>
-        client.list(`/api/v1/history/${entry.historySlug}/${String(args.id)}`),
-      );
+      return handleTool("comment_list", args, async () => {
+        const result = await client.listPaginated<Record<string, unknown>[]>(
+          `/api/v1/history/${entry.historySlug}/${String(args.id)}`,
+          { page: args.page, page_size: args.page_size },
+        );
+        return {
+          items: applyVerbosityToItems(
+            result.items,
+            args.verbosity ?? DEFAULT_VERBOSITY,
+          ),
+          pagination: result.pagination,
+        };
+      });
     },
   );
 
   server.registerTool(
     "comment_edit",
     {
+      title: "Edit Comment",
       description:
         "Edit the text of an existing comment on an epic, user story, " +
         "task, or issue. Not gated — editing isn't destructive.",
       inputSchema: commentEditInput,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
     },
     async (args) => {
       const entry = RESOURCE_REGISTRY[args.resource];
@@ -96,12 +133,19 @@ export function registerCommentTools(
   server.registerTool(
     "comment_delete",
     {
+      title: "Delete Comment",
       description:
         "Delete a comment from an epic, user story, task, or issue. " +
         "This cannot be undone. Requires confirmation: elicitation-capable " +
         "clients are prompted interactively; others must call again with " +
         "confirm: true after reviewing the preview returned by the first call.",
       inputSchema: commentDeleteInput,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async (args) => {
       const entry = RESOURCE_REGISTRY[args.resource];

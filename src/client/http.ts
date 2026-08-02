@@ -23,6 +23,13 @@ export interface HttpRequesterOptions {
 
 export interface HttpRequester {
   request: <T = unknown>(options: RequestOptions) => Promise<T>;
+  /** Same retry/refresh/rate-limit behavior as `request`, but also
+   * returns the raw `Response` — needed to read pagination headers
+   * (`x-pagination-*`), which `request`'s parsed-body-only return
+   * discards. See `TaigaClient.listPaginated`. */
+  requestRaw: <T = unknown>(
+    options: RequestOptions,
+  ) => Promise<{ data: T; response: Response }>;
 }
 
 /**
@@ -74,7 +81,9 @@ export function createHttpRequester(
     return fetchImpl(url, init);
   }
 
-  async function request<T = unknown>(reqOptions: RequestOptions): Promise<T> {
+  async function requestRaw<T = unknown>(
+    reqOptions: RequestOptions,
+  ): Promise<{ data: T; response: Response }> {
     let token = await authSession.getToken();
     let hasRefreshed = false;
     let rateLimitAttempt = 0;
@@ -107,12 +116,13 @@ export function createHttpRequester(
       }
 
       if (response.ok) {
-        if (response.status === 204) return undefined as T;
+        if (response.status === 204) return { data: undefined as T, response };
         // Some Taiga actions (e.g. vote/watch toggles) return 200 with an
         // empty body rather than 204 — `response.json()` throws on empty
         // input, so read as text first and only parse if non-empty.
         const text = await response.text();
-        return (text.length === 0 ? undefined : JSON.parse(text)) as T;
+        const data = (text.length === 0 ? undefined : JSON.parse(text)) as T;
+        return { data, response };
       }
 
       const body = await safeReadJson(response);
@@ -120,7 +130,12 @@ export function createHttpRequester(
     }
   }
 
-  return { request };
+  async function request<T = unknown>(reqOptions: RequestOptions): Promise<T> {
+    const { data } = await requestRaw<T>(reqOptions);
+    return data;
+  }
+
+  return { request, requestRaw };
 }
 
 function computeBackoffDelayMs(response: Response, attempt: number): number {

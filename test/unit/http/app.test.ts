@@ -30,7 +30,9 @@ describe("HTTP transport: per-session credential isolation", () => {
         const auth = (init?.headers as Record<string, string> | undefined)?.[
           "authorization"
         ];
-        return jsonResponse([{ id: 1, name: `seen:${auth}` }]);
+        return jsonResponse([{ id: 1, name: `seen:${auth}` }], {
+          headers: { "x-pagination-count": "1", "x-pagination-current": "1" },
+        });
       }
       return jsonResponse({ error: "unhandled" }, { status: 404 });
     });
@@ -48,8 +50,14 @@ describe("HTTP transport: per-session credential isolation", () => {
         b.client.callTool({ name: "project_list", arguments: {} }),
       ]);
 
-      expect(textOf(resultA)).toEqual([{ id: 1, name: "seen:Bearer token-A" }]);
-      expect(textOf(resultB)).toEqual([{ id: 1, name: "seen:Bearer token-B" }]);
+      expect(textOf(resultA)).toEqual({
+        items: [{ id: 1, name: "seen:Bearer token-A" }],
+        pagination: { count: 1, current_page: 1, has_next: false },
+      });
+      expect(textOf(resultB)).toEqual({
+        items: [{ id: 1, name: "seen:Bearer token-B" }],
+        pagination: { count: 1, current_page: 1, has_next: false },
+      });
 
       await Promise.all([a.client.close(), b.client.close()]);
     } finally {

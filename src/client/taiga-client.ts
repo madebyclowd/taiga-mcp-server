@@ -52,9 +52,51 @@ export class TaigaClient {
   }
 
   /** Semantically a collection GET; same request path as `get` today —
-   * kept distinct so call sites read as singular-vs-collection intent. */
+   * kept distinct so call sites read as singular-vs-collection intent.
+   * Returns the raw parsed body (typically an array), no pagination
+   * metadata. Used internally by `member-resolver.ts` for membership
+   * resolution, which needs a plain array — every tool-facing list
+   * response goes through `listPaginated` instead (see phase 9). */
   list<T = unknown>(path: string, query?: RequestOptions["query"]): Promise<T> {
     return this.requester.request<T>({ method: "GET", path, query });
+  }
+
+  /**
+   * Collection GET that also surfaces Taiga's `x-pagination-*` response
+   * headers, wrapped as `{ items, pagination }`. Every endpoint this is
+   * used against was live-confirmed (phase 9) to send these headers —
+   * throws if `x-pagination-count` is missing rather than silently
+   * guessing a default, since that would mean this method was pointed
+   * at an endpoint that isn't actually Taiga-paginated as expected.
+   */
+  async listPaginated<T = unknown>(
+    path: string,
+    query?: RequestOptions["query"],
+  ): Promise<{
+    items: T;
+    pagination: { count: number; current_page: number; has_next: boolean };
+  }> {
+    const { data, response } = await this.requester.requestRaw<T>({
+      method: "GET",
+      path,
+      query,
+    });
+    const countHeader = response.headers.get("x-pagination-count");
+    if (countHeader === null) {
+      throw new Error(
+        `listPaginated: ${path} did not return an x-pagination-count header — ` +
+          "this endpoint is not Taiga-paginated as expected.",
+      );
+    }
+    const currentHeader = response.headers.get("x-pagination-current");
+    return {
+      items: data,
+      pagination: {
+        count: Number(countHeader),
+        current_page: currentHeader === null ? 1 : Number(currentHeader),
+        has_next: response.headers.get("x-pagination-next") !== null,
+      },
+    };
   }
 
   create<T = unknown>(path: string, body: unknown): Promise<T> {

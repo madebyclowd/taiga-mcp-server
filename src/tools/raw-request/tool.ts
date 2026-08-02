@@ -20,6 +20,7 @@ export function registerRawRequestTools(
   server.registerTool(
     "taiga_raw_request",
     {
+      title: "Raw Taiga API Request",
       description:
         "Escape hatch: make a raw request to any /api/v1/ endpoint on " +
         "the configured Taiga instance, for functionality not covered " +
@@ -27,6 +28,10 @@ export function registerRawRequestTools(
         "notify policies, project templates, export/import, etc.). " +
         "Prefer a dedicated tool when one exists.",
       inputSchema: rawRequestInput,
+      // Method is caller-chosen (GET/POST/PUT/PATCH/DELETE) — can't claim
+      // readOnlyHint/destructiveHint/idempotentHint honestly at
+      // registration time, only that it always hits live Taiga state.
+      annotations: { openWorldHint: true },
     },
     async (args) =>
       handleTool("taiga_raw_request", args, () =>

@@ -59,7 +59,9 @@ describe("attachment tools", () => {
       http.get(`${BASE_URL}/api/v1/tasks/attachments`, ({ request }) => {
         const url = new URL(request.url);
         expect(url.searchParams.get("object_id")).toBe("5");
-        return HttpResponse.json([{ id: 1 }]);
+        return HttpResponse.json([{ id: 1 }], {
+          headers: { "x-pagination-count": "1", "x-pagination-current": "1" },
+        });
       }),
     );
     const { client } = await createConnectedTestClient();
@@ -70,6 +72,10 @@ describe("attachment tools", () => {
     });
 
     expect(result.isError).toBeFalsy();
+    expect(textOf(result)).toEqual({
+      items: [{ id: 1 }],
+      pagination: { count: 1, current_page: 1, has_next: false },
+    });
   });
 
   it("attachment_download fetches metadata then the file bytes, returning base64", async () => {

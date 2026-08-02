@@ -21,6 +21,10 @@ export function registerIssueTools(
     server,
     client,
     resource: "issue",
+    resourceTitle: "Issue",
+    listDescriptionSuffix:
+      "Use issue_filters_data to discover valid type/status/priority/" +
+      "severity/tags/assigned_to ids cheaply instead of paging through results.",
     basePath: BASE_PATH,
     listInput: issueListInput,
     createInput: issueCreateInput,

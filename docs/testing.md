@@ -76,7 +76,12 @@ To run integration tests against a live Taiga instance:
   `attachment_download` round trip (bytes compared), a
   `batch_create_user_stories` call with a deliberate partial failure,
   and a create call using a name-based (email/full name) assignee
-  instead of a numeric id.
+  instead of a numeric id. Phase 9's additions are covered too: a
+  `user_story_list` call with `page`/`page_size` confirming real
+  `pagination.has_next`/`current_page` against Taiga's own headers, a
+  `user_story_get` call confirming `verbosity: "minimal"`/`"standard"`
+  actually trim fields against a real object, and a
+  `user_story_filters_data` call.
 - **OCC conflict handling**: `client.test.ts` forces a real stale-version
   `PATCH` and confirms Taiga's actual conflict response is classified as
   `TaigaConflictError`. This one matters more than it looks — Taiga

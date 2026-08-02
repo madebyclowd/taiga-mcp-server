@@ -61,6 +61,67 @@ describe("TaigaClient", () => {
     ).resolves.toEqual([{ key: "x" }]);
   });
 
+  it("listPaginated reads real x-pagination-* headers into { items, pagination }", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v1/userstories`, () =>
+        HttpResponse.json([{ id: 1 }, { id: 2 }], {
+          headers: {
+            "x-pagination-count": "36",
+            "x-pagination-current": "1",
+            "x-pagination-next": `${BASE_URL}/api/v1/userstories?page=2`,
+          },
+        }),
+      ),
+    );
+    const client = new TaigaClient({
+      baseUrl: BASE_URL,
+      credentials: { kind: "token", token: "t" },
+      logger: pino({ level: "silent" }),
+    });
+
+    await expect(client.listPaginated("/api/v1/userstories")).resolves.toEqual({
+      items: [{ id: 1 }, { id: 2 }],
+      pagination: { count: 36, current_page: 1, has_next: true },
+    });
+  });
+
+  it("listPaginated has_next is false when x-pagination-next is absent", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v1/userstories`, () =>
+        HttpResponse.json([{ id: 1 }], {
+          headers: { "x-pagination-count": "1", "x-pagination-current": "1" },
+        }),
+      ),
+    );
+    const client = new TaigaClient({
+      baseUrl: BASE_URL,
+      credentials: { kind: "token", token: "t" },
+      logger: pino({ level: "silent" }),
+    });
+
+    await expect(client.listPaginated("/api/v1/userstories")).resolves.toEqual({
+      items: [{ id: 1 }],
+      pagination: { count: 1, current_page: 1, has_next: false },
+    });
+  });
+
+  it("listPaginated throws when x-pagination-count is missing (endpoint isn't actually paginated)", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v1/userstories`, () =>
+        HttpResponse.json([{ id: 1 }]),
+      ),
+    );
+    const client = new TaigaClient({
+      baseUrl: BASE_URL,
+      credentials: { kind: "token", token: "t" },
+      logger: pino({ level: "silent" }),
+    });
+
+    await expect(client.listPaginated("/api/v1/userstories")).rejects.toThrow(
+      /did not return an x-pagination-count header/,
+    );
+  });
+
   it("defaults to a working stderr-bound logger when none is supplied", () => {
     const client = new TaigaClient({
       baseUrl: BASE_URL,

@@ -6,7 +6,7 @@ function jsonResult(data: unknown): CallToolResult {
   // `delete` call resolves to undefined (204 No Content), and the SDK
   // requires content[].text to be a string, so that case needs an
   // explicit fallback rather than silently producing an invalid frame.
-  const text = data === undefined ? "null" : JSON.stringify(data, null, 2);
+  const text = data === undefined ? "null" : JSON.stringify(data);
   return { content: [{ type: "text", text }] };
 }
 

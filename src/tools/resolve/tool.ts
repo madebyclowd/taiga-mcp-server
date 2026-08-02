@@ -36,11 +36,13 @@ export function registerResolveTools(
   server.registerTool(
     "ref_resolve",
     {
+      title: "Resolve Ref",
       description:
         'Resolve a project-scoped ref (e.g. "#436" or 436) to its type ' +
         "(issue, user_story, task, or epic) and numeric id, without " +
         "fetching full details.",
       inputSchema: refResolveInput,
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (args) =>
       handleTool("ref_resolve", args, async () => {

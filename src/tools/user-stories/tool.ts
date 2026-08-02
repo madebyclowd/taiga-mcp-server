@@ -21,6 +21,11 @@ export function registerUserStoryTools(
     server,
     client,
     resource: "user_story",
+    resourceTitle: "User Story",
+    resourceTitlePlural: "User Stories",
+    listDescriptionSuffix:
+      "Use user_story_filters_data to discover valid status/tags/" +
+      "assigned_to/epic ids cheaply instead of paging through results.",
     basePath: BASE_PATH,
     listInput: userStoryListInput,
     createInput: userStoryCreateInput,

@@ -4,6 +4,7 @@ import { registerAttachmentTools } from "./attachments/tool.js";
 import { registerBatchTools } from "./batch/tool.js";
 import { registerCommentTools } from "./comments/tool.js";
 import { registerEpicTools } from "./epics/tool.js";
+import { registerFiltersDataTools } from "./filters-data/tool.js";
 import { registerIssueTools } from "./issues/tool.js";
 import { registerMembershipTools } from "./memberships/tool.js";
 import { registerMilestoneTools } from "./milestones/tool.js";
@@ -36,4 +37,5 @@ export function registerTools(
   registerRawRequestTools(server, client);
   registerResolveTools(server, client);
   registerBatchTools(server, client);
+  registerFiltersDataTools(server, client);
 }

@@ -21,6 +21,8 @@ export function registerMembershipTools(
     server,
     client,
     resource: "membership",
+    resourceTitle: "Project Member",
+    resourceTitlePlural: "Project Members",
     basePath: BASE_PATH,
     listInput: membershipListInput,
     createInput: membershipCreateInput,
@@ -31,12 +33,19 @@ export function registerMembershipTools(
   server.registerTool(
     "membership_bulk_create",
     {
+      title: "Bulk Invite Project Members",
       description:
         "Invite multiple members to a project in one call. Each entry " +
         "needs a role id and either a username or an email — this will " +
         "send real invitation emails for entries that don't match an " +
         "existing user.",
       inputSchema: membershipBulkCreateInput,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async (args) =>
       handleTool("membership_bulk_create", args, () =>
@@ -47,8 +56,15 @@ export function registerMembershipTools(
   server.registerTool(
     "membership_resend_invitation",
     {
+      title: "Resend Invitation",
       description: "Resend a pending project invitation email.",
       inputSchema: { id: z.number().int().describe("Membership id") },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async (args) =>
       handleTool("membership_resend_invitation", args, () =>
