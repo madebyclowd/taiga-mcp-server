@@ -1,5 +1,11 @@
 # @madebyclowd/taiga-mcp-server
 
+## 0.1.1
+
+### Patch Changes
+
+- 4915a3c: Bump pino from 9.14.0 to 10.3.1 (no breaking changes affecting this package's usage).
+
 ## 0.1.0
 
 ### Minor Changes
