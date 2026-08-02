@@ -36,4 +36,12 @@ export const attachmentUploadInput = {
 export const attachmentDeleteInput = {
   resource: attachableResource,
   id: z.number().int().describe("Attachment id"),
+  confirm: z
+    .boolean()
+    .optional()
+    .describe(
+      "Set true to actually delete after reviewing the preview from a " +
+        "first call without it. Ignored by elicitation-capable clients, " +
+        "which are prompted interactively instead.",
+    ),
 };

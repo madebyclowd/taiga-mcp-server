@@ -149,10 +149,11 @@ If you're exposing this server on the internet (not just on your own machine or 
 
 ### Used by both modes
 
-| Setting          | Required? | What it does                                               | Default                |
-| :--------------- | :-------: | :--------------------------------------------------------- | :--------------------- |
-| `TAIGA_BASE_URL` |    Yes    | The Taiga API address to connect to.                       | `https://api.taiga.io` |
-| `LOG_LEVEL`      |    No     | How much the server logs (`error`, `info`, `debug`, etc.). | `info`                 |
+| Setting                     | Required? | What it does                                                                                                                                                                                                                                                                                                                                                  | Default                  |
+| :-------------------------- | :-------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------- |
+| `TAIGA_BASE_URL`            |    Yes    | The Taiga API address to connect to.                                                                                                                                                                                                                                                                                                                          | `https://api.taiga.io`   |
+| `LOG_LEVEL`                 |    No     | How much the server logs (`error`, `info`, `debug`, etc.).                                                                                                                                                                                                                                                                                                    | `info`                   |
+| `TAIGA_REQUIRE_ELICITATION` |    No     | `true`/`1` to require a real human-in-loop confirmation for every delete. With this on, a connecting MCP client that doesn't support interactive confirmation (`elicitation`) can never delete anything — no fallback `confirm: true` two-call workaround. Leave off for the default behavior, where such clients can still delete via that two-call pattern. | unset (fallback allowed) |
 
 ### Only for the normal (stdio) mode
 

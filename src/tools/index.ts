@@ -14,17 +14,21 @@ import { registerUserStoryTools } from "./user-stories/tool.js";
 import { registerVoteWatchTools } from "./vote-watch/tool.js";
 import { registerWikiTools } from "./wiki/tool.js";
 
-export function registerTools(server: McpServer, client: TaigaClient): void {
-  registerProjectTools(server, client);
-  registerEpicTools(server, client);
-  registerUserStoryTools(server, client);
-  registerTaskTools(server, client);
-  registerIssueTools(server, client);
-  registerMilestoneTools(server, client);
-  registerWikiTools(server, client);
-  registerMembershipTools(server, client);
+export function registerTools(
+  server: McpServer,
+  client: TaigaClient,
+  requireElicitation = false,
+): void {
+  registerProjectTools(server, client, requireElicitation);
+  registerEpicTools(server, client, requireElicitation);
+  registerUserStoryTools(server, client, requireElicitation);
+  registerTaskTools(server, client, requireElicitation);
+  registerIssueTools(server, client, requireElicitation);
+  registerMilestoneTools(server, client, requireElicitation);
+  registerWikiTools(server, client, requireElicitation);
+  registerMembershipTools(server, client, requireElicitation);
   registerCommentTools(server, client);
-  registerAttachmentTools(server, client);
+  registerAttachmentTools(server, client, requireElicitation);
   registerVoteWatchTools(server, client);
   registerSearchTools(server, client);
   registerRawRequestTools(server, client);

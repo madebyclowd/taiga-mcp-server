@@ -8,6 +8,7 @@ const BASE_PATH = "/api/v1/tasks";
 export function registerTaskTools(
   server: McpServer,
   client: TaigaClient,
+  requireElicitation = false,
 ): void {
   registerCrudTools({
     server,
@@ -17,5 +18,6 @@ export function registerTaskTools(
     listInput: taskListInput,
     createInput: taskCreateInput,
     updateInput: taskUpdateInput,
+    requireElicitation,
   });
 }

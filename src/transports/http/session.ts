@@ -25,6 +25,8 @@ export interface SessionManagerOptions {
   now?: () => number;
   /** Passed through to each session's `TaigaClient`; injectable for tests. */
   fetchImpl?: typeof fetch | undefined;
+  /** See `CreateServerOptions.requireElicitation`. Default false. */
+  requireElicitation?: boolean | undefined;
 }
 
 const DEFAULT_MAX_SESSIONS = 1000;
@@ -78,7 +80,9 @@ export class SessionManager {
       logger: this.options.logger,
       fetchImpl: this.options.fetchImpl,
     });
-    const server = createServer(client);
+    const server = createServer(client, {
+      requireElicitation: this.options.requireElicitation,
+    });
 
     let sessionId: string | undefined;
     const transport = new StreamableHTTPServerTransport({

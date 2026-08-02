@@ -10,6 +10,7 @@ const BASE_PATH = "/api/v1/wiki";
 export function registerWikiTools(
   server: McpServer,
   client: TaigaClient,
+  requireElicitation = false,
 ): void {
   registerCrudTools({
     server,
@@ -19,6 +20,7 @@ export function registerWikiTools(
     listInput: wikiListInput,
     createInput: wikiCreateInput,
     updateInput: wikiUpdateInput,
+    requireElicitation,
   });
 
   server.registerTool(

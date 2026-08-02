@@ -41,6 +41,7 @@ export async function main(): Promise<void> {
       sessionTtlMs: config.sessionTtlMs,
       allowedOrigins: config.allowedOrigins,
       maxSessions: config.maxSessions,
+      requireElicitation: config.requireElicitation,
       logger,
     });
     const server = createHttpServer(app, logger);

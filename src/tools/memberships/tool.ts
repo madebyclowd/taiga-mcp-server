@@ -15,6 +15,7 @@ const BASE_PATH = "/api/v1/memberships";
 export function registerMembershipTools(
   server: McpServer,
   client: TaigaClient,
+  requireElicitation = false,
 ): void {
   registerCrudTools({
     server,
@@ -24,6 +25,7 @@ export function registerMembershipTools(
     listInput: membershipListInput,
     createInput: membershipCreateInput,
     updateInput: membershipUpdateInput,
+    requireElicitation,
   });
 
   server.registerTool(

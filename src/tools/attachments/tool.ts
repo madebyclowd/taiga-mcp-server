@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { TaigaClient } from "../../client/taiga-client.js";
+import { confirmDestructiveOp } from "../shared/destructive-confirm.js";
 import { handleTool } from "../shared/helpers.js";
 import { RESOURCE_REGISTRY } from "../shared/resource-registry.js";
 import {
@@ -18,6 +19,7 @@ import {
 export function registerAttachmentTools(
   server: McpServer,
   client: TaigaClient,
+  requireElicitation = false,
 ): void {
   server.registerTool(
     "attachment_upload",
@@ -69,13 +71,34 @@ export function registerAttachmentTools(
   server.registerTool(
     "attachment_delete",
     {
-      description: "Delete an attachment by id. This cannot be undone.",
+      description:
+        "Delete an attachment by id. This cannot be undone. Requires " +
+        "confirmation: elicitation-capable clients are prompted " +
+        "interactively; others must call again with confirm: true after " +
+        "reviewing the preview returned by the first call.",
       inputSchema: attachmentDeleteInput,
     },
     async (args) => {
       const entry = RESOURCE_REGISTRY[args.resource];
+      const basePath = `${entry.basePath}/attachments`;
+      const gate = await confirmDestructiveOp({
+        server,
+        client,
+        basePath,
+        id: args.id,
+        resourceLabel: "attachment",
+        args,
+        requireElicitation,
+      });
+      if (!gate.proceed) {
+        return {
+          content: [
+            { type: "text", text: gate.message ?? "Not deleted — cancelled." },
+          ],
+        };
+      }
       return handleTool("attachment_delete", args, () =>
-        client.delete(`${entry.basePath}/attachments/${String(args.id)}`),
+        client.delete(`${basePath}/${String(args.id)}`),
       );
     },
   );

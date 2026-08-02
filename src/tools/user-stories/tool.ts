@@ -14,6 +14,7 @@ const BASE_PATH = "/api/v1/userstories";
 export function registerUserStoryTools(
   server: McpServer,
   client: TaigaClient,
+  requireElicitation = false,
 ): void {
   registerCrudTools({
     server,
@@ -23,6 +24,7 @@ export function registerUserStoryTools(
     listInput: userStoryListInput,
     createInput: userStoryCreateInput,
     updateInput: userStoryUpdateInput,
+    requireElicitation,
   });
 
   server.registerTool(

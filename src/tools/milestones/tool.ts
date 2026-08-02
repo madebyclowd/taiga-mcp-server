@@ -14,6 +14,7 @@ const BASE_PATH = "/api/v1/milestones";
 export function registerMilestoneTools(
   server: McpServer,
   client: TaigaClient,
+  requireElicitation = false,
 ): void {
   registerCrudTools({
     server,
@@ -23,6 +24,7 @@ export function registerMilestoneTools(
     listInput: milestoneListInput,
     createInput: milestoneCreateInput,
     updateInput: milestoneUpdateInput,
+    requireElicitation,
   });
 
   server.registerTool(

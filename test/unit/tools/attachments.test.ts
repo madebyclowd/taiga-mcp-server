@@ -63,6 +63,9 @@ describe("attachment tools", () => {
 
   it("attachment_delete removes by id under the resource's attachments path", async () => {
     server.use(
+      http.get(`${BASE_URL}/api/v1/epics/attachments/1`, () =>
+        HttpResponse.json({ id: 1, name: "hello.txt" }),
+      ),
       http.delete(
         `${BASE_URL}/api/v1/epics/attachments/1`,
         () => new HttpResponse(null, { status: 204 }),
@@ -72,7 +75,7 @@ describe("attachment tools", () => {
 
     const result = await client.callTool({
       name: "attachment_delete",
-      arguments: { resource: "epic", id: 1 },
+      arguments: { resource: "epic", id: 1, confirm: true },
     });
 
     expect(result.isError).toBeFalsy();

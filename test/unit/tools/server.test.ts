@@ -108,6 +108,9 @@ describe("project tools", () => {
 
   it("project_delete returns success on 204", async () => {
     server.use(
+      http.get(`${BASE_URL}/api/v1/projects/5`, () =>
+        HttpResponse.json({ id: 5, name: "Sample" }),
+      ),
       http.delete(
         `${BASE_URL}/api/v1/projects/5`,
         () => new HttpResponse(null, { status: 204 }),
@@ -117,7 +120,7 @@ describe("project tools", () => {
 
     const result = await client.callTool({
       name: "project_delete",
-      arguments: { id: 5 },
+      arguments: { id: 5, confirm: true },
     });
 
     expect(result.isError).toBeFalsy();
