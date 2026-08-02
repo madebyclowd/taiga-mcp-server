@@ -1,6 +1,6 @@
 {
   "name": "@madebyclowd/taiga-mcp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server connecting Claude, Cursor, Windsurf, and other AI assistants to Taiga (Cloud and self-hosted) — projects, epics, user stories, tasks, issues, sprints, wiki, and more.",
   "license": "MIT",
   "type": "module",
