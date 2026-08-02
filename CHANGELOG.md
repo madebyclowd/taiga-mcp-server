@@ -1,5 +1,36 @@
 # @madebyclowd/taiga-mcp-server
 
+## 1.0.0
+
+### Major Changes
+
+- a4a0012: MCP protocol alignment and token-economy fixes, targeting `1.0.0` — the point at which the tool surface's public contract is considered stable.
+
+  **Breaking:**
+  - Every list-shaped tool's response is now `{ items, pagination }` instead of a bare array — `pagination` is `{ count, current_page, has_next }`, read from Taiga's real `x-pagination-*` headers where available (project/epic/user_story/task/issue/milestone/wiki/membership `_list`, `epic_related_user_stories`, `attachment_list`, `comment_list`), or synthesized from `search`'s own `count` field (search has no real pagination on Taiga's side).
+
+  **Additive:**
+  - `page`/`page_size` are now exposed on every list-shaped tool's input schema (Taiga already honored them; they just weren't declared). Default `page_size` is `30`, matching Taiga's own server-side default.
+  - New opt-in `verbosity: "minimal" | "standard" | "full"` param on every `_list`/`_get` tool across all 8 core resources. Defaults to `"full"` (today's unfiltered response, zero behavior change for existing callers). `"standard"` drops denormalized `*_extra_info` objects, `*_html` duplicate fields, and UI-only ordering fields. `"minimal"` keeps only `id`/`ref`/`subject`/`status`/`assigned_to`/`project`/`is_closed`.
+  - New `user_story_filters_data`/`task_filters_data`/`issue_filters_data` tools — cheap lookup of valid status/tag/assigned-user/etc ids for a project, instead of paging through a full `_list` call just to read them off.
+  - Every tool now declares MCP `annotations` (`readOnlyHint`/`destructiveHint`/`idempotentHint`/`openWorldHint`) and a human-readable `title`, so MCP clients that use these hints can distinguish safe reads from destructive writes without calling the tool.
+  - Tool responses are now compact JSON instead of pretty-printed — roughly 25-30% fewer tokens per response, no change in content.
+
+  **Migration**: any caller parsing a `_list`/`comment_list`/`attachment_list`/`epic_related_user_stories`/`search` tool's response as a bare array needs to read `.items` instead.
+
+### Minor Changes
+
+- 2df2df7: Six gap-closing additions vs. reference implementations, targeting `0.3.0`:
+
+  - New `ref_resolve` tool — resolves a project-scoped ref (e.g. `"#436"` or `436`) to its type (`issue`/`user_story`/`task`/`epic`) and numeric id via Taiga's `/resolver` endpoint.
+  - New `comment_edit`/`comment_delete` tools for epic/user_story/task/issue comments. `comment_delete` routes through the same destructive-op confirmation gate as every other delete.
+  - New `epic_unlink_user_story` tool, mirroring the existing `epic_link_user_story`.
+  - New `attachment_download` tool — returns file contents as base64 (matching how `attachment_upload` already takes base64 in), with filename/content-type/size/sha1, rejecting files over a 10 MiB cap before downloading.
+  - New `batch_create_issues`/`batch_create_user_stories`/`batch_create_tasks` tools — up to 20 items per call, each created independently with per-item partial-failure reporting (`{ succeeded, failed, total, succeededCount, failedCount }`).
+  - `assigned_to` and the new `watchers` field on epic/user_story/task/issue create+update tools now accept a numeric user id, an email/full-name string (resolved against the project's members), or `null` (explicit unassign). Omitting the field still leaves it unchanged. Ambiguous or unresolvable names return a structured `{ error: "no_match" | "ambiguous_match", identifier, candidates }` error rather than a silent guess.
+
+  All additive — existing numeric-id usage of `assigned_to` is unaffected.
+
 ## 0.2.0
 
 ### Minor Changes
