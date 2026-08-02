@@ -306,6 +306,73 @@ describe("createHttpRequester", () => {
     ).rejects.toBeInstanceOf(TaigaConflictError);
   });
 
+  it("retries a transport-level failure on GET and eventually succeeds", async () => {
+    let attempt = 0;
+    server.use(
+      http.get(`${BASE_URL}/api/v1/projects/1`, () => {
+        attempt += 1;
+        if (attempt < 3) return HttpResponse.error();
+        return HttpResponse.json({ id: 1 });
+      }),
+    );
+
+    const requester = createHttpRequester({
+      baseUrl: BASE_URL,
+      authSession: tokenSession(),
+      logger: silentLogger(),
+      transportRetryBaseDelayMs: 1,
+    });
+
+    await expect(
+      requester.request({ method: "GET", path: "/api/v1/projects/1" }),
+    ).resolves.toEqual({ id: 1 });
+    expect(attempt).toBe(3);
+  });
+
+  it("gives up after maxTransportRetryAttempts on GET and surfaces the original error", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v1/projects/1`, () => HttpResponse.error()),
+    );
+
+    const requester = createHttpRequester({
+      baseUrl: BASE_URL,
+      authSession: tokenSession(),
+      logger: silentLogger(),
+      maxTransportRetryAttempts: 1,
+      transportRetryBaseDelayMs: 1,
+    });
+
+    await expect(
+      requester.request({ method: "GET", path: "/api/v1/projects/1" }),
+    ).rejects.toThrow(/fetch/i);
+  });
+
+  it("never retries a transport-level failure on a non-GET method", async () => {
+    let attempt = 0;
+    server.use(
+      http.post(`${BASE_URL}/api/v1/user-stories`, () => {
+        attempt += 1;
+        return HttpResponse.error();
+      }),
+    );
+
+    const requester = createHttpRequester({
+      baseUrl: BASE_URL,
+      authSession: tokenSession(),
+      logger: silentLogger(),
+      transportRetryBaseDelayMs: 1,
+    });
+
+    await expect(
+      requester.request({
+        method: "POST",
+        path: "/api/v1/user-stories",
+        body: {},
+      }),
+    ).rejects.toThrow();
+    expect(attempt).toBe(1);
+  });
+
   it("still maps a literal 409 to TaigaConflictError, in case any deployment ever sends one", async () => {
     server.use(
       http.patch(

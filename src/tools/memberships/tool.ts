@@ -9,6 +9,10 @@ import {
   membershipListInput,
   membershipUpdateInput,
 } from "./schema.js";
+import {
+  createMembershipWriteTransform,
+  mapEmailToUsername,
+} from "./transform.js";
 
 const BASE_PATH = "/api/v1/memberships";
 
@@ -28,6 +32,7 @@ export function registerMembershipTools(
     createInput: membershipCreateInput,
     updateInput: membershipUpdateInput,
     requireElicitation,
+    transformWriteArgs: createMembershipWriteTransform(client),
   });
 
   server.registerTool(
@@ -49,7 +54,10 @@ export function registerMembershipTools(
     },
     async (args) =>
       handleTool("membership_bulk_create", args, () =>
-        client.create(`${BASE_PATH}/bulk_create`, args),
+        client.create(`${BASE_PATH}/bulk_create`, {
+          ...args,
+          bulk_memberships: args.bulk_memberships.map(mapEmailToUsername),
+        }),
       ),
   );
 

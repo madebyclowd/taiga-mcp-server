@@ -29,6 +29,11 @@ export function registerEpicTools(
     createInput: epicCreateInput,
     updateInput: epicUpdateInput,
     requireElicitation,
+    createDescriptionSuffix:
+      "Note: if the project's Epics module isn't enabled " +
+      "(is_epics_activated), the epic is still created via the API but " +
+      "stays invisible in Taiga's web UI (no nav item, in-app links " +
+      "404) until the module is enabled — use project_update to enable it.",
     transformWriteArgs: createAssignmentTransform(client, async (args) => {
       if (typeof args.project === "number") return args.project;
       const epic = await client.get<{ project: number }>(

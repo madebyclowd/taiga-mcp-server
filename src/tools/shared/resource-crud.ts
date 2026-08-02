@@ -63,6 +63,10 @@ export interface RegisterCrudToolsOptions {
    * `*_filters_data` tool for cheap filter-id discovery. Only set for
    * the 3 resources that actually have one (user_story/task/issue). */
   listDescriptionSuffix?: string;
+  /** Appended to `_create`'s description — for a sharp edge worth
+   * flagging up front (e.g. epic's module-visibility caveat). Only set
+   * where it applies; most resources pay nothing. */
+  createDescriptionSuffix?: string;
 }
 
 /**
@@ -101,6 +105,7 @@ export function registerCrudTools(options: RegisterCrudToolsOptions): void {
     requireElicitation,
     transformWriteArgs,
     listDescriptionSuffix,
+    createDescriptionSuffix,
   } = options;
 
   server.registerTool(
@@ -160,7 +165,9 @@ export function registerCrudTools(options: RegisterCrudToolsOptions): void {
     `${resource}_create`,
     {
       title: `Create ${resourceTitle}`,
-      description: `Create a new ${resource}.`,
+      description:
+        `Create a new ${resource}.` +
+        (createDescriptionSuffix ? ` ${createDescriptionSuffix}` : ""),
       inputSchema: createInput,
       annotations: {
         readOnlyHint: false,

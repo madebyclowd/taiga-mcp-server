@@ -21,6 +21,13 @@ export const membershipCreateInput = {
 
 export const membershipUpdateInput = {
   role: z.number().int().optional(),
+  is_admin: z
+    .boolean()
+    .optional()
+    .describe(
+      "Grant or revoke project-admin rights. Privilege-escalation " +
+        "field — every change is audit-logged.",
+    ),
 };
 
 export const membershipBulkCreateInput = {

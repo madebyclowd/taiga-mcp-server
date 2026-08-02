@@ -1,7 +1,41 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { TaigaClient } from "../../client/taiga-client.js";
+import { TaigaValidationError } from "../../errors/taiga-error.js";
 import { handleTool } from "../shared/helpers.js";
 import { rawRequestInput } from "./schema.js";
+
+const MALFORMED_BODY_HINT =
+  " Hint: this generic 'Invalid data' error with no named field usually " +
+  "means the request body wasn't valid object data as Taiga's API " +
+  "expects — most commonly, `body` was passed as a JSON-encoded string " +
+  "(double-encoded) instead of a plain object. Zod now rejects a string " +
+  "`body` outright before this point, so if you're still seeing this: " +
+  "double-check the body shape matches what Taiga's docs expect for " +
+  "this exact endpoint.";
+
+/**
+ * Taiga signals a malformed/unparseable request body with a generic
+ * 400 (`non_field_errors: ["Invalid data"]`) that names no specific
+ * field. Live-verified (2026-08-02, see
+ * ai-docs/04_audits/taiga-mcp-audit-03-talent-intelligence-field-feedback.md,
+ * Finding 1's correction) against the real Talent Intelligence
+ * project: this exact shape reproduces when `body` is passed as a
+ * JSON-encoded *string* rather than an object — NOT from a missing OCC
+ * `version` field as originally assumed. Confirmed on the same pass
+ * that PATCH without `version` on project/membership succeeds outright
+ * (those resources don't require it), and on user-stories (which does
+ * require it) surfaces as a 409 conflict instead, a different error
+ * class entirely. The schema-level `body` refine (raw-request/schema.ts)
+ * now rejects a string body before it ever reaches Taiga — this handler
+ * check is a backstop for any other way this same shape could occur.
+ */
+function looksLikeMalformedBody(error: TaigaValidationError): boolean {
+  return (
+    error.fields.length === 1 &&
+    error.fields[0]?.field === "non_field_errors" &&
+    (error.fields[0]?.messages.includes("Invalid data") ?? false)
+  );
+}
 
 /**
  * Escape hatch for everything not hand-typed as a curated tool:
@@ -34,13 +68,23 @@ export function registerRawRequestTools(
       annotations: { openWorldHint: true },
     },
     async (args) =>
-      handleTool("taiga_raw_request", args, () =>
-        client.request({
-          method: args.method,
-          path: args.path,
-          query: args.query,
-          body: args.body,
-        }),
-      ),
+      handleTool("taiga_raw_request", args, async () => {
+        try {
+          return await client.request({
+            method: args.method,
+            path: args.path,
+            query: args.query,
+            body: args.body,
+          });
+        } catch (error) {
+          if (
+            error instanceof TaigaValidationError &&
+            looksLikeMalformedBody(error)
+          ) {
+            error.message += MALFORMED_BODY_HINT;
+          }
+          throw error;
+        }
+      }),
   );
 }
