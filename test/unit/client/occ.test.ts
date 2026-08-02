@@ -55,7 +55,12 @@ describe("updateWithVersion", () => {
     expect(result).toEqual({ id: 42, version: 6, subject: "new" });
   });
 
-  it("retries once on 409 with a freshly fetched version", async () => {
+  it("retries once on a real Taiga OCC conflict (400 + bare version string) with a freshly fetched version", async () => {
+    // Taiga signals a version conflict as 400 + {"version": "..."} (a
+    // bare string, not the usual field-error array), never a literal
+    // 409 — confirmed live during phase 5 integration testing. Mocking
+    // a literal 409 here would test a shape the real API never sends,
+    // exactly the self-consistent-mock risk ADR-005 exists to catch.
     let getCount = 0;
     let patchAttempt = 0;
     server.use(
@@ -69,8 +74,8 @@ describe("updateWithVersion", () => {
         if (patchAttempt === 1) {
           expect(body.version).toBe(5);
           return HttpResponse.json(
-            { _error_message: "conflict" },
-            { status: 409 },
+            { version: "The version doesn't match with the current one" },
+            { status: 400 },
           );
         }
         expect(body.version).toBe(7);
@@ -91,13 +96,16 @@ describe("updateWithVersion", () => {
     expect(patchAttempt).toBe(2);
   });
 
-  it("propagates a second consecutive 409 once the retry is exhausted", async () => {
+  it("propagates a second consecutive OCC conflict once the retry is exhausted", async () => {
     server.use(
       http.get(`${BASE_URL}/api/v1/user-stories/42`, () =>
         HttpResponse.json({ id: 42, version: 5 }),
       ),
       http.patch(`${BASE_URL}/api/v1/user-stories/42`, () =>
-        HttpResponse.json({}, { status: 409 }),
+        HttpResponse.json(
+          { version: "The version doesn't match with the current one" },
+          { status: 400 },
+        ),
       ),
     );
 

@@ -23,7 +23,7 @@ export async function main(): Promise<void> {
     const transport = new StdioServerTransport();
     await server.connect(transport);
   } catch (error) {
-    logger.error({ err: error }, "server-taiga failed to start");
+    logger.error({ err: error }, "taiga-mcp-server failed to start");
     process.exitCode = 1;
   }
 }

@@ -12,7 +12,7 @@ export function createHttpServer(app: HttpApp, logger: Logger): Server {
     app.handler(req, res).catch((error: unknown) => {
       logger.error(
         { err: error },
-        "server-taiga (http): unhandled request error",
+        "taiga-mcp-server (http): unhandled request error",
       );
       if (!res.headersSent) {
         res.writeHead(500, { "content-type": "application/json" });
@@ -47,7 +47,7 @@ export async function main(): Promise<void> {
 
     await new Promise<void>((resolve) => {
       server.listen(config.port, () => {
-        logger.info({ port: config.port }, "server-taiga (http) listening");
+        logger.info({ port: config.port }, "taiga-mcp-server (http) listening");
         resolve();
       });
     });
@@ -59,7 +59,7 @@ export async function main(): Promise<void> {
     process.on("SIGINT", shutdown);
     process.on("SIGTERM", shutdown);
   } catch (error) {
-    logger.error({ err: error }, "server-taiga (http) failed to start");
+    logger.error({ err: error }, "taiga-mcp-server (http) failed to start");
     process.exitCode = 1;
   }
 }

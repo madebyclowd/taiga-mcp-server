@@ -6,6 +6,7 @@ import {
   TaigaRateLimitError,
   TaigaValidationError,
   extractErrorMessage,
+  isOccConflictBody,
   parseValidationErrorBody,
 } from "../errors/taiga-error.js";
 import type { AuthSession } from "./auth.js";
@@ -151,6 +152,24 @@ function mapError(
   reqOptions: RequestOptions,
 ): TaigaApiError {
   if (status === 400) {
+    // Taiga signals an OCC version conflict as a 400 with a bare
+    // `version` key (a plain string, not the usual field-error array
+    // shape — e.g. {"version": "The version doesn't match with the
+    // current one"}), *not* a 409 — confirmed live during phase 5
+    // integration testing. `updateWithVersion`'s whole retry-on-409
+    // path (occ.ts) depends on this being classified as
+    // TaigaConflictError; without this check it silently never
+    // triggers against the real API, no matter how solid the mocked
+    // unit-test coverage of the retry logic itself looks.
+    if (isOccConflictBody(body)) {
+      return new TaigaConflictError({
+        message: extractErrorMessage(
+          body,
+          "Taiga optimistic-concurrency conflict",
+        ),
+        params: reqOptions,
+      });
+    }
     return new TaigaValidationError({
       message: extractErrorMessage(body, "Taiga validation error"),
       fields: parseValidationErrorBody(body),

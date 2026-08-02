@@ -1,19 +1,39 @@
 {
-  "name": "@madebyclowd/server-taiga",
-  "version": "0.0.0",
+  "name": "@madebyclowd/taiga-mcp-server",
+  "version": "0.1.0",
   "description": "MCP server for Taiga (Cloud and self-hosted) — projects, epics, user stories, tasks, issues, sprints, wiki, and more.",
   "license": "MIT",
   "type": "module",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "taiga",
+    "project-management",
+    "claude",
+    "ai-agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/madebyclowd/taiga-mcp-server.git"
+  },
+  "homepage": "https://github.com/madebyclowd/taiga-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/madebyclowd/taiga-mcp-server/issues"
+  },
   "engines": {
     "node": "^22.11.0 || ^24.0.0"
   },
   "packageManager": "pnpm@10.28.1",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "exports": {
     ".": "./dist/index.js"
   },
   "bin": {
-    "server-taiga": "./dist/transports/stdio/cli.js",
-    "server-taiga-http": "./dist/transports/http/cli.js"
+    "taiga-mcp-server": "./dist/transports/stdio/cli.js",
+    "taiga-mcp-server-http": "./dist/transports/http/cli.js"
   },
   "files": [
     "dist",
@@ -27,7 +47,9 @@
     "format:fix": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.config.integration.ts",
     "test:watch": "vitest",
+    "audit": "pnpm audit",
     "prepare": "husky"
   },
   "dependencies": {
@@ -47,7 +69,8 @@
     "prettier": "^3.4.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.2",
-    "vitest": "^2.1.8"
+    "vite": "^6.4.3",
+    "vitest": "^3.2.6"
   },
   "lint-staged": {
     "*.{ts,js}": [

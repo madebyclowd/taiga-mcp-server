@@ -11,7 +11,7 @@ import { registerTools } from "./tools/index.js";
  */
 export function createServer(client: TaigaClient): McpServer {
   const server = new McpServer({
-    name: "server-taiga",
+    name: "taiga-mcp-server",
     version: packageJson.version,
   });
   registerTools(server, client);

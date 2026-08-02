@@ -193,13 +193,16 @@ describe("epic extra tools", () => {
     expect(textOf(result)).toEqual([{ id: 20, subject: "Linked story" }]);
   });
 
-  it("epic_link_user_story posts the user_story id", async () => {
+  it("epic_link_user_story posts both epic and user_story ids", async () => {
+    // Taiga requires `epic` in the body too, even though it's already in
+    // the URL path — confirmed live during phase 5 integration testing
+    // (a 400 "This field is required." without it).
     server.use(
       http.post(
         `${BASE_URL}/api/v1/epics/9/related_userstories`,
         async ({ request }) => {
           const body = await request.json();
-          expect(body).toEqual({ user_story: 20 });
+          expect(body).toEqual({ epic: 9, user_story: 20 });
           return HttpResponse.json({ epic: 9, user_story: 20 });
         },
       ),

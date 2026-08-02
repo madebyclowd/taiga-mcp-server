@@ -43,8 +43,12 @@ export function registerEpicTools(
       },
     },
     async (args) =>
+      // Taiga requires `epic` in the body too, even though it's already
+      // in the URL path — confirmed live (400 "This field is required."
+      // without it) during phase 5 integration testing.
       handleTool("epic_link_user_story", args, () =>
         client.create(`${BASE_PATH}/${String(args.id)}/related_userstories`, {
+          epic: args.id,
           user_story: args.user_story,
         }),
       ),

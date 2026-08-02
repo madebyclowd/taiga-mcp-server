@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { AuthSession } from "../../../src/client/auth.js";
 import { createHttpRequester } from "../../../src/client/http.js";
 import {
+  TaigaConflictError,
   TaigaRateLimitError,
   TaigaValidationError,
 } from "../../../src/errors/taiga-error.js";
@@ -270,5 +271,61 @@ describe("createHttpRequester", () => {
       { field: "subject", messages: ["This field is required."] },
     ]);
     expect(structured.message).toBe("Validation failed");
+  });
+
+  it("maps Taiga's real OCC-conflict shape (400 + bare version string) to TaigaConflictError, not TaigaValidationError", async () => {
+    // Confirmed live against the real API during phase 5 integration
+    // testing: Taiga signals a version conflict as HTTP 400 with
+    // {"version": "The version doesn't match with the current one"} —
+    // a bare string, not the usual field-error array shape — never a
+    // literal 409. Without this classification, updateWithVersion's
+    // retry-on-conflict path (occ.ts) silently never triggers against
+    // the real API no matter how solid its mocked-409 test coverage
+    // looks (the exact failure mode ADR-005 exists to catch).
+    server.use(
+      http.patch(`${BASE_URL}/api/v1/user-stories/1`, () =>
+        HttpResponse.json(
+          { version: "The version doesn't match with the current one" },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    const requester = createHttpRequester({
+      baseUrl: BASE_URL,
+      authSession: tokenSession(),
+      logger: silentLogger(),
+    });
+
+    await expect(
+      requester.request({
+        method: "PATCH",
+        path: "/api/v1/user-stories/1",
+        body: { version: 1, subject: "x" },
+      }),
+    ).rejects.toBeInstanceOf(TaigaConflictError);
+  });
+
+  it("still maps a literal 409 to TaigaConflictError, in case any deployment ever sends one", async () => {
+    server.use(
+      http.patch(
+        `${BASE_URL}/api/v1/user-stories/1`,
+        () => new HttpResponse(null, { status: 409 }),
+      ),
+    );
+
+    const requester = createHttpRequester({
+      baseUrl: BASE_URL,
+      authSession: tokenSession(),
+      logger: silentLogger(),
+    });
+
+    await expect(
+      requester.request({
+        method: "PATCH",
+        path: "/api/v1/user-stories/1",
+        body: { version: 1 },
+      }),
+    ).rejects.toBeInstanceOf(TaigaConflictError);
   });
 });

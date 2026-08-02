@@ -109,6 +109,23 @@ export function parseValidationErrorBody(body: unknown): TaigaFieldError[] {
 }
 
 /**
+ * Taiga's OCC version-conflict 400 body is a distinct shape from a
+ * normal field-validation 400: a bare `version` key holding a plain
+ * string (not the usual message-array), e.g.
+ * `{"version": "The version doesn't match with the current one"}` —
+ * confirmed live against the real API. `version` is a reserved
+ * system field on every OCC-versioned resource, never a real business
+ * field, so its presence here reliably distinguishes a conflict from
+ * an ordinary validation error.
+ */
+export function isOccConflictBody(body: unknown): boolean {
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    return false;
+  }
+  return "version" in (body as Record<string, unknown>);
+}
+
+/**
  * Best-effort human-readable message from a Taiga error body, for the
  * `message` field of the structured error — the `fields` array remains
  * the source of truth for programmatic handling.

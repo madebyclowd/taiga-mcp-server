@@ -4,10 +4,50 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# Least-privilege default — none of these jobs need to write anything.
+permissions:
+  contents: read
 
 jobs:
   verify:
+    name: Unit Tests & Code Standards (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both major versions declared in package.json's `engines` field —
+        # a declared-but-unverified runtime is a gap, not a guarantee.
+        node-version: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm format
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
+
+  integration:
+    name: Live Integration Suite
+    # Never run on fork PRs to prevent secret exposure (ADR-005)
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: integration-test
     steps:
       - uses: actions/checkout@v4
 
@@ -20,10 +60,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm lint
-
-      - run: pnpm format
-
-      - run: pnpm typecheck
-
-      - run: pnpm test
+      - run: pnpm test:integration
+        env:
+          TAIGA_TEST_BASE_URL: ${{ secrets.TAIGA_TEST_BASE_URL }}
+          TAIGA_TEST_TOKEN: ${{ secrets.TAIGA_TEST_TOKEN }}
+          TAIGA_TEST_USERNAME: ${{ secrets.TAIGA_TEST_USERNAME }}
+          TAIGA_TEST_PASSWORD: ${{ secrets.TAIGA_TEST_PASSWORD }}
+          TAIGA_TEST_PROJECT_SLUG: ${{ secrets.TAIGA_TEST_PROJECT_SLUG }}

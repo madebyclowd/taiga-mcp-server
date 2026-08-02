@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # Required for npm provenance attestation via OIDC
+
+jobs:
+  release:
+    name: Changesets Release & npm Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      # Defense in depth: gate the publish on the same checks CI runs,
+      # independent of branch-protection settings (a repo-level config
+      # this workflow can't see) — a push to main should never be able
+      # to publish broken code even if required-status-checks lapses.
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
+
+      - name: Create Release PR or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: pnpm changeset publish --provenance
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Software Bill of Materials — only meaningful once a version was
+      # actually published (a push to main with no pending changesets
+      # just leaves the version PR as-is and publishes nothing).
+      - name: Generate SBOM
+        if: steps.changesets.outputs.published == 'true'
+        run: pnpm dlx @cyclonedx/cyclonedx-npm --output-file bom.json
+
+      - name: Upload SBOM artifact
+        if: steps.changesets.outputs.published == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: bom.json
+          retention-days: 90
