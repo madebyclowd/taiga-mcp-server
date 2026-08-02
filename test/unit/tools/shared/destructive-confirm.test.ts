@@ -2,7 +2,10 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { describe, expect, it, vi } from "vitest";
 import type { TaigaClient } from "../../../../src/client/taiga-client.js";
-import { confirmDestructiveOp } from "../../../../src/tools/shared/destructive-confirm.js";
+import {
+  confirmDestructiveOp,
+  confirmDestructiveOpGivenSummary,
+} from "../../../../src/tools/shared/destructive-confirm.js";
 
 function makeClient(entity: unknown) {
   const get = vi.fn().mockResolvedValue(entity);
@@ -345,5 +348,68 @@ describe("confirmDestructiveOp", () => {
 
       expect(result).toEqual({ proceed: true });
     });
+  });
+});
+
+describe("confirmDestructiveOpGivenSummary", () => {
+  it("never fetches the entity — uses the summary passed in directly", async () => {
+    const { client, get } = makeClient({
+      id: 999,
+      subject: "should not be fetched",
+    });
+    const { server } = makeFallbackServer();
+
+    const result = await confirmDestructiveOpGivenSummary({
+      server,
+      client,
+      resourceLabel: "comment",
+      id: "00000000-0000-0000-0000-000000000000",
+      summary: { message: "Delete comment abc?", title: "abc" },
+      args: {},
+    });
+
+    expect(get).not.toHaveBeenCalled();
+    expect(result.proceed).toBe(false);
+    expect(result.message).toContain("Delete comment abc?");
+  });
+
+  it("passes the given message straight to the elicitation prompt", async () => {
+    const { client } = makeClient({});
+    let seenMessage = "";
+    const { server } = makeElicitationServer({
+      elicitInput: (params) => {
+        seenMessage = params.message;
+        return { action: "accept", content: { confirm: true } };
+      },
+    });
+
+    const result = await confirmDestructiveOpGivenSummary({
+      server,
+      client,
+      resourceLabel: "comment",
+      id: "some-uuid",
+      summary: { message: "Delete comment 'hello'?", title: "hello" },
+      args: {},
+    });
+
+    expect(seenMessage).toBe("Delete comment 'hello'?");
+    expect(result).toEqual({ proceed: true });
+  });
+
+  it("fallback confirm: true proceeds without ever fetching an entity", async () => {
+    const { client, get } = makeClient({});
+    const { server } = makeFallbackServer();
+
+    const result = await confirmDestructiveOpGivenSummary({
+      server,
+      client,
+      resourceLabel: "comment",
+      id: "some-uuid",
+      summary: { message: "Delete comment 'hello'?", title: "hello" },
+      args: { confirm: true },
+    });
+
+    expect(get).not.toHaveBeenCalled();
+    expect(result).toEqual({ proceed: true });
   });
 });

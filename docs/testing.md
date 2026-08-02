@@ -70,7 +70,13 @@ To run integration tests against a live Taiga instance:
 - **Full CRUD + tool coverage**: every curated resource (projects, epics,
   user stories, tasks, issues, milestones, wiki pages, comments,
   vote/watch, search) is exercised through the actual MCP tool layer
-  against the real API, plus the `taiga_raw_request` escape hatch.
+  against the real API, plus the `taiga_raw_request` escape hatch. Phase
+  7's additions are covered too: `ref_resolve`, `comment_edit`/
+  `comment_delete`, `epic_unlink_user_story`, an `attachment_upload` →
+  `attachment_download` round trip (bytes compared), a
+  `batch_create_user_stories` call with a deliberate partial failure,
+  and a create call using a name-based (email/full name) assignee
+  instead of a numeric id.
 - **OCC conflict handling**: `client.test.ts` forces a real stale-version
   `PATCH` and confirms Taiga's actual conflict response is classified as
   `TaigaConflictError`. This one matters more than it looks — Taiga

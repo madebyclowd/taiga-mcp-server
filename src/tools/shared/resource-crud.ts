@@ -29,6 +29,17 @@ export interface RegisterCrudToolsOptions {
   updateInput: ZodRawShape;
   /** See `ConfirmDestructiveOpOptions.requireElicitation`. Default false. */
   requireElicitation?: boolean;
+  /**
+   * Optional pre-processing hook run on `create`/`update` args (the full
+   * tool input, including `id` on update) before they're sent to Taiga —
+   * e.g. resolving name-based assignee/watcher identifiers into numeric
+   * ids via `member-resolver.ts`. Only 4 of the 8 resources this helper
+   * serves need this; left optional so the rest pay nothing, keeping
+   * this generator itself free of resource-specific branching.
+   */
+  transformWriteArgs?: (
+    args: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>;
 }
 
 /**
@@ -63,6 +74,7 @@ export function registerCrudTools(options: RegisterCrudToolsOptions): void {
     createInput,
     updateInput,
     requireElicitation,
+    transformWriteArgs,
   } = options;
 
   server.registerTool(
@@ -94,9 +106,10 @@ export function registerCrudTools(options: RegisterCrudToolsOptions): void {
       inputSchema: createInput,
     },
     async (args) =>
-      handleTool(`${resource}_create`, args, () =>
-        client.create(basePath, args),
-      ),
+      handleTool(`${resource}_create`, args, async () => {
+        const body = transformWriteArgs ? await transformWriteArgs(args) : args;
+        return client.create(basePath, body);
+      }),
   );
 
   server.registerTool(
@@ -108,12 +121,17 @@ export function registerCrudTools(options: RegisterCrudToolsOptions): void {
         `\`version\` field is handled automatically; do not pass it.`,
       inputSchema: { ...idShape, ...updateInput },
     },
-    async (args) => {
-      const { id, ...patch } = args as { id: number } & Record<string, unknown>;
-      return handleTool(`${resource}_update`, args, () =>
-        client.updateWithVersion(`${basePath}/${String(id)}`, patch),
-      );
-    },
+    async (args) =>
+      handleTool(`${resource}_update`, args, async () => {
+        const transformed = transformWriteArgs
+          ? await transformWriteArgs(args)
+          : args;
+        const { id, ...patch } = transformed as { id: number } & Record<
+          string,
+          unknown
+        >;
+        return client.updateWithVersion(`${basePath}/${String(id)}`, patch);
+      }),
   );
 
   server.registerTool(

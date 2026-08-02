@@ -1,13 +1,25 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { TaigaApiError } from "../../errors/taiga-error.js";
 import type { TaigaClient } from "../../client/taiga-client.js";
 import { confirmDestructiveOp } from "../shared/destructive-confirm.js";
 import { handleTool } from "../shared/helpers.js";
 import { RESOURCE_REGISTRY } from "../shared/resource-registry.js";
 import {
   attachmentDeleteInput,
+  attachmentDownloadInput,
   attachmentListInput,
   attachmentUploadInput,
 } from "./schema.js";
+
+/** Reject downloads above this before ever fetching the bytes. */
+const MAX_ATTACHMENT_DOWNLOAD_BYTES = 10 * 1024 * 1024; // 10 MiB
+
+interface AttachmentMeta {
+  url: string;
+  size: number;
+  name: string;
+  sha1: string;
+}
 
 /**
  * Confirmed live against a real Taiga instance: uploads are
@@ -65,6 +77,45 @@ export function registerAttachmentTools(
           object_id: args.object_id,
         }),
       );
+    },
+  );
+
+  server.registerTool(
+    "attachment_download",
+    {
+      description:
+        "Download an attachment's file contents as base64, along with " +
+        `its filename, content type, size, and sha1. Rejects files ` +
+        `larger than ${String(MAX_ATTACHMENT_DOWNLOAD_BYTES)} bytes ` +
+        "before downloading.",
+      inputSchema: attachmentDownloadInput,
+    },
+    async (args) => {
+      const entry = RESOURCE_REGISTRY[args.resource];
+      const basePath = `${entry.basePath}/attachments`;
+      return handleTool("attachment_download", args, async () => {
+        const attachment = await client.get<AttachmentMeta>(
+          `${basePath}/${String(args.id)}`,
+        );
+        if (attachment.size > MAX_ATTACHMENT_DOWNLOAD_BYTES) {
+          throw new TaigaApiError({
+            status: 413,
+            message:
+              `Attachment ${String(args.id)} is ${String(attachment.size)} ` +
+              `bytes, exceeding the ${String(MAX_ATTACHMENT_DOWNLOAD_BYTES)}-byte download cap.`,
+          });
+        }
+        const { bytes, contentType } = await client.downloadBinary(
+          attachment.url,
+        );
+        return {
+          file_base64: bytes.toString("base64"),
+          file_name: attachment.name,
+          content_type: contentType,
+          size: attachment.size,
+          sha1: attachment.sha1,
+        };
+      });
     },
   );
 

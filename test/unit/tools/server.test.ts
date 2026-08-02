@@ -37,8 +37,16 @@ describe("MCP server tool registration", () => {
       expect.arrayContaining([
         "epic_related_user_stories",
         "epic_link_user_story",
+        "epic_unlink_user_story",
         "user_story_assign_milestone",
         "issue_set_classification",
+        "ref_resolve",
+        "comment_edit",
+        "comment_delete",
+        "attachment_download",
+        "batch_create_issues",
+        "batch_create_user_stories",
+        "batch_create_tasks",
       ]),
     );
   });
@@ -214,6 +222,23 @@ describe("epic extra tools", () => {
 
     const result = await client.callTool({
       name: "epic_link_user_story",
+      arguments: { id: 9, user_story: 20 },
+    });
+
+    expect(result.isError).toBeFalsy();
+  });
+
+  it("epic_unlink_user_story DELETEs the related_userstories sub-resource, no body, no gate", async () => {
+    server.use(
+      http.delete(
+        `${BASE_URL}/api/v1/epics/9/related_userstories/20`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
+    );
+    const { client } = await createConnectedTestClient();
+
+    const result = await client.callTool({
+      name: "epic_unlink_user_story",
       arguments: { id: 9, user_story: 20 },
     });
 

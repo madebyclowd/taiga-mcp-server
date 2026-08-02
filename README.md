@@ -44,7 +44,8 @@ The assistant does this by calling this server, which talks to Taiga's real API 
 
 It supports:
 
-- **Projects, epics, user stories, tasks, issues, sprints (milestones), wiki pages, comments, attachments, project members, voting/watching, and search.**
+- **Projects, epics, user stories, tasks, issues, sprints (milestones), wiki pages, comments (including edit/delete), attachments (including download), project members, voting/watching, ref lookup (`#436` → the right item), batch create, and search.**
+- Assign people by email or full name instead of hunting down a numeric user id — the server resolves it against the project's members for you.
 - A fallback "raw request" tool for the rare Taiga API endpoint that doesn't have a dedicated tool yet (webhooks, import/export, and similar admin-level features).
 
 ## Before you start

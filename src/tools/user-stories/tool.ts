@@ -8,6 +8,7 @@ import {
 } from "./schema.js";
 import { registerCrudTools } from "../shared/resource-crud.js";
 import { handleTool } from "../shared/helpers.js";
+import { createAssignmentTransform } from "../shared/member-resolver.js";
 
 const BASE_PATH = "/api/v1/userstories";
 
@@ -25,6 +26,13 @@ export function registerUserStoryTools(
     createInput: userStoryCreateInput,
     updateInput: userStoryUpdateInput,
     requireElicitation,
+    transformWriteArgs: createAssignmentTransform(client, async (args) => {
+      if (typeof args.project === "number") return args.project;
+      const story = await client.get<{ project: number }>(
+        `${BASE_PATH}/${String(args.id)}`,
+      );
+      return story.project;
+    }),
   });
 
   server.registerTool(

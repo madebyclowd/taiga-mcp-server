@@ -33,6 +33,11 @@ export const attachmentUploadInput = {
   description: z.string().optional(),
 };
 
+export const attachmentDownloadInput = {
+  resource: attachableResource,
+  id: z.number().int().describe("Attachment id"),
+};
+
 export const attachmentDeleteInput = {
   resource: attachableResource,
   id: z.number().int().describe("Attachment id"),

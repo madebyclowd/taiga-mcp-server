@@ -36,6 +36,7 @@ describe.runIf(runIntegration)("Integration: MCP Tools E2E", () => {
   const tracker = new TestFixtureTracker();
   let projectId: number;
   let currentUserId: number;
+  let currentUserEmail: string;
 
   beforeAll(async () => {
     if (!config) return;
@@ -71,8 +72,11 @@ describe.runIf(runIntegration)("Integration: MCP Tools E2E", () => {
     );
     projectId = project.id;
 
-    const me = await taigaClient.get<{ id: number }>("/api/v1/users/me");
+    const me = await taigaClient.get<{ id: number; email: string }>(
+      "/api/v1/users/me",
+    );
     currentUserId = me.id;
+    currentUserEmail = me.email;
   });
 
   afterAll(async () => {
@@ -389,5 +393,206 @@ describe.runIf(runIntegration)("Integration: MCP Tools E2E", () => {
     expect(response.content).toBeDefined();
     const me = jsonOf(response);
     expect(me.id).toBeGreaterThan(0);
+  });
+
+  it("should resolve a ref to its type and id via ref_resolve", async () => {
+    const createRes = (await mcpClient.callTool({
+      name: "user_story_create",
+      arguments: { project: projectId, subject: `E2E Ref Story ${Date.now()}` },
+    })) as ToolResponse;
+    const story = jsonOf(createRes) as { id: number; ref?: number };
+    tracker.track("userstories", story.id);
+
+    const resolveRes = (await mcpClient.callTool({
+      name: "ref_resolve",
+      arguments: { project: config?.projectSlug, ref: story.ref },
+    })) as ToolResponse;
+
+    expect(resolveRes.isError).toBeFalsy();
+    const resolved = jsonOf(resolveRes) as unknown as {
+      type: string;
+      id: number;
+    };
+    expect(resolved.type).toBe("user_story");
+    expect(resolved.id).toBe(story.id);
+  });
+
+  it("should edit and delete a comment via comment_edit/comment_delete", async () => {
+    const createRes = (await mcpClient.callTool({
+      name: "user_story_create",
+      arguments: {
+        project: projectId,
+        subject: `E2E Comment Edit/Delete Story ${Date.now()}`,
+      },
+    })) as ToolResponse;
+    const story = jsonOf(createRes);
+    tracker.track("userstories", story.id);
+
+    const commentText = `E2E editable comment ${Date.now()}`;
+    const addRes = (await mcpClient.callTool({
+      name: "comment_add",
+      arguments: { resource: "user_story", id: story.id, comment: commentText },
+    })) as ToolResponse;
+    expect(addRes.isError).toBeFalsy();
+
+    const listRes = (await mcpClient.callTool({
+      name: "comment_list",
+      arguments: { resource: "user_story", id: story.id },
+    })) as ToolResponse;
+    const history = JSON.parse(listRes.content[0]?.text ?? "[]") as Array<{
+      id: string;
+      comment?: string;
+    }>;
+    const entry = history.find((h) => h.comment === commentText);
+    expect(entry).toBeDefined();
+
+    const editRes = (await mcpClient.callTool({
+      name: "comment_edit",
+      arguments: {
+        resource: "user_story",
+        id: story.id,
+        comment_id: entry?.id,
+        comment: `${commentText} (edited)`,
+      },
+    })) as ToolResponse;
+    expect(editRes.isError).toBeFalsy();
+
+    const deleteRes = (await mcpClient.callTool({
+      name: "comment_delete",
+      arguments: {
+        resource: "user_story",
+        id: story.id,
+        comment_id: entry?.id,
+        confirm: true,
+      },
+    })) as ToolResponse;
+    expect(deleteRes.isError).toBeFalsy();
+  });
+
+  it("should link then unlink a user story from an epic via epic_unlink_user_story", async () => {
+    const createEpicRes = (await mcpClient.callTool({
+      name: "epic_create",
+      arguments: {
+        project: projectId,
+        subject: `E2E Unlink Epic ${Date.now()}`,
+      },
+    })) as ToolResponse;
+    const epic = jsonOf(createEpicRes);
+    tracker.track("epics", epic.id);
+
+    const createStoryRes = (await mcpClient.callTool({
+      name: "user_story_create",
+      arguments: {
+        project: projectId,
+        subject: `E2E Unlink Story ${Date.now()}`,
+      },
+    })) as ToolResponse;
+    const story = jsonOf(createStoryRes);
+    tracker.track("userstories", story.id);
+
+    await mcpClient.callTool({
+      name: "epic_link_user_story",
+      arguments: { id: epic.id, user_story: story.id },
+    });
+
+    const unlinkRes = (await mcpClient.callTool({
+      name: "epic_unlink_user_story",
+      arguments: { id: epic.id, user_story: story.id },
+    })) as ToolResponse;
+    expect(unlinkRes.isError).toBeFalsy();
+
+    const relatedRes = (await mcpClient.callTool({
+      name: "epic_related_user_stories",
+      arguments: { id: epic.id },
+    })) as ToolResponse;
+    expect(relatedRes.content[0]?.text ?? "").not.toContain(String(story.id));
+  });
+
+  it("should upload then download an attachment and get back the same bytes", async () => {
+    const createStoryRes = (await mcpClient.callTool({
+      name: "user_story_create",
+      arguments: {
+        project: projectId,
+        subject: `E2E Attachment Download Story ${Date.now()}`,
+      },
+    })) as ToolResponse;
+    const story = jsonOf(createStoryRes);
+    tracker.track("userstories", story.id);
+
+    const fileContents = `E2E attachment round-trip ${Date.now()}`;
+    const fileBase64 = Buffer.from(fileContents).toString("base64");
+
+    const uploadRes = (await mcpClient.callTool({
+      name: "attachment_upload",
+      arguments: {
+        resource: "user_story",
+        object_id: story.id,
+        project: projectId,
+        file_name: "e2e-roundtrip.txt",
+        file_base64: fileBase64,
+        content_type: "text/plain",
+      },
+    })) as ToolResponse;
+    const attachment = jsonOf(uploadRes);
+    tracker.track("userstories/attachments", attachment.id);
+
+    const downloadRes = (await mcpClient.callTool({
+      name: "attachment_download",
+      arguments: { resource: "user_story", id: attachment.id },
+    })) as ToolResponse;
+    expect(downloadRes.isError).toBeFalsy();
+    const downloaded = jsonOf(downloadRes) as unknown as {
+      file_base64: string;
+      file_name: string;
+    };
+    expect(downloaded.file_base64).toBe(fileBase64);
+    expect(downloaded.file_name).toBe("e2e-roundtrip.txt");
+  });
+
+  it("should batch-create user stories with one deliberate failure", async () => {
+    const goodSubject = `E2E Batch Good ${Date.now()}`;
+    const batchRes = (await mcpClient.callTool({
+      name: "batch_create_user_stories",
+      arguments: {
+        project: projectId,
+        items: [
+          { subject: goodSubject },
+          { subject: "E2E Batch Bad", milestone: 999_999_999 },
+        ],
+      },
+    })) as ToolResponse;
+
+    expect(batchRes.isError).toBeFalsy();
+    const result = jsonOf(batchRes) as unknown as {
+      total: number;
+      succeededCount: number;
+      failedCount: number;
+      succeeded: Array<{ id: number; subject: string }>;
+    };
+    expect(result.total).toBe(2);
+    expect(result.succeededCount).toBe(1);
+    expect(result.failedCount).toBe(1);
+    for (const s of result.succeeded) {
+      tracker.track("userstories", s.id);
+    }
+  });
+
+  it("should create a user story with a name-based assignee", async () => {
+    const createRes = (await mcpClient.callTool({
+      name: "user_story_create",
+      arguments: {
+        project: projectId,
+        subject: `E2E Name-based Assignee ${Date.now()}`,
+        assigned_to: currentUserEmail,
+      },
+    })) as ToolResponse;
+
+    expect(createRes.isError).toBeFalsy();
+    const story = jsonOf(createRes) as unknown as {
+      id: number;
+      assigned_to: number;
+    };
+    tracker.track("userstories", story.id);
+    expect(story.assigned_to).toBe(currentUserId);
   });
 });
