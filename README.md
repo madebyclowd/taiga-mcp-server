@@ -1,8 +1,8 @@
 # Taiga MCP Server
 
-Let AI assistants like **Claude**, **Cursor**, and **Windsurf** read and update your **[Taiga](https://taiga.io)** projects — epics, user stories, tasks, issues, sprints, comments, and wiki pages — just by chatting with them.
+**Connect Claude, Cursor, Windsurf, or any other MCP-compatible AI assistant to your [Taiga](https://taiga.io) project management tool** — read and update epics, user stories, tasks, issues, sprints, comments, and wiki pages just by chatting, in plain English. No coding required to use it.
 
-This is an **MCP server**. MCP stands for **Model Context Protocol** — a standard way for AI assistants to connect to outside tools and data. This package is the "tool" that lets an AI assistant talk to your Taiga account.
+**In plain words:** MCP (**Model Context Protocol**) is a standard that lets an AI assistant safely use outside tools — like reading your files or browsing the web. This package is that "tool" for Taiga: it's the bridge that lets your AI assistant see and change things in your Taiga account when you ask it to.
 
 Package on npm: [`@madebyclowd/taiga-mcp-server`](https://www.npmjs.com/package/@madebyclowd/taiga-mcp-server)
 
@@ -40,14 +40,17 @@ Once it's connected, you can ask your AI assistant things like:
 - "Summarize what changed on epic #12 this week."
 - "Search the wiki for our deployment steps."
 
-The assistant does this by calling this server, which talks to Taiga's real API using your own Taiga login. It only does what your Taiga account is already allowed to do — it can't see or change anything you don't already have permission for.
+You don't type any code or API calls yourself — you just ask, in normal sentences, and the assistant does the rest.
+
+Behind the scenes, the assistant does this by calling this server, which talks to Taiga's real API using your own Taiga login. It only does what your Taiga account is already allowed to do — it can't see or change anything you don't already have permission for in Taiga itself.
 
 It supports:
 
-- **Projects, epics, user stories, tasks, issues, sprints (milestones), wiki pages, comments (including edit/delete), attachments (including download), project members, voting/watching, ref lookup (`#436` → the right item), batch create, and search.**
-- Assign people by email or full name instead of hunting down a numeric user id — the server resolves it against the project's members for you.
-- Built-in paging and an opt-in `verbosity` setting (`minimal`/`standard`/`full`) on every list/get call, so an AI assistant doesn't have to pull down every field of every item just to answer a simple question — keeps responses small and keeps you from burning through your assistant's context on a single "list my backlog" request.
+- **Projects, epics, user stories, tasks, issues, sprints (milestones), wiki pages, comments (including edit/delete), attachments (including download), project members, voting/watching, ref lookup (`#436` → the right item), batch create, and search.** If it's in Taiga, there's a good chance this covers it.
+- Assign people by email or full name instead of hunting down a numeric user id — the server figures out who you mean from the project's member list.
+- Every response tells the AI assistant whether more results are waiting (paging) and lets it ask for a shorter or fuller version of the data (a `verbosity` setting: `minimal`/`standard`/`full`). In plain terms: asking "list my backlog" won't dump a wall of raw data into your conversation and eat up the assistant's memory of what you've been talking about — it gets just enough to answer you.
 - Cheap filter-id lookups (`user_story_filters_data`, `task_filters_data`, `issue_filters_data`) instead of paging through a full list just to find a valid status or tag id.
+- Each tool is clearly labeled as read-only, safe-to-repeat, or something that changes data — so your AI assistant (and you) can tell at a glance what's harmless to run and what deserves a second look before confirming.
 - A fallback "raw request" tool for the rare Taiga API endpoint that doesn't have a dedicated tool yet (webhooks, import/export, and similar admin-level features).
 
 ## Before you start
@@ -200,6 +203,9 @@ Every list-shaped tool (`*_list`, `comment_list`, `attachment_list`, `epic_relat
 
 **What is MCP / Model Context Protocol?**
 It's a standard that lets AI assistants (like Claude) connect to external tools and data sources in a consistent way, instead of every integration being custom-built. This package implements that standard for Taiga.
+
+**How do I connect Claude (or Cursor, Windsurf) to Taiga?**
+Add this package to your assistant's MCP config with your Taiga token — see [Set it up](#set-it-up-with-claude-desktop-claude-code-cursor-or-windsurf) above. It works the same way for any MCP-compatible client, not just Claude.
 
 **Is this made by the Taiga team?**
 No. This is an independent, open-source project, not affiliated with or endorsed by Taiga/Kaleidos.

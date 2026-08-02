@@ -1,16 +1,27 @@
 {
   "name": "@madebyclowd/taiga-mcp-server",
   "version": "0.2.0",
-  "description": "MCP server for Taiga (Cloud and self-hosted) — projects, epics, user stories, tasks, issues, sprints, wiki, and more.",
+  "description": "MCP server connecting Claude, Cursor, Windsurf, and other AI assistants to Taiga (Cloud and self-hosted) — projects, epics, user stories, tasks, issues, sprints, wiki, and more.",
   "license": "MIT",
   "type": "module",
   "keywords": [
     "mcp",
+    "mcp-server",
     "model-context-protocol",
     "taiga",
+    "taiga-mcp",
     "project-management",
     "claude",
-    "ai-agent"
+    "claude-desktop",
+    "claude-code",
+    "cursor",
+    "windsurf",
+    "ai-agent",
+    "ai-assistant",
+    "agile",
+    "scrum",
+    "kanban",
+    "llm-tools"
   ],
   "repository": {
     "type": "git",
