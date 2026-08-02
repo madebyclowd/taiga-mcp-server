@@ -71,4 +71,98 @@ describe("taiga_raw_request escape hatch", () => {
 
     expect(result.isError).toBe(true);
   });
+
+  it("rejects a string body before it ever reaches the network", async () => {
+    // The actual, live-verified root cause behind feedback.md's report
+    // — a double-encoded JSON string passed as `body` — is now caught
+    // here, before any request goes out. See
+    // ai-docs/04_audits/taiga-mcp-audit-03-talent-intelligence-field-feedback.md
+    // Finding 1's correction.
+    const { client } = await createConnectedTestClient();
+
+    const result = await client.callTool({
+      name: "taiga_raw_request",
+      arguments: {
+        method: "PATCH",
+        path: "/api/v1/projects/1",
+        body: JSON.stringify({ name: "same name" }),
+      },
+    });
+
+    expect(result.isError).toBe(true);
+    const text = (result.content as Array<{ text: string }>)[0]?.text ?? "";
+    expect(text.toLowerCase()).toContain("string");
+  });
+
+  it("appends a malformed-body hint on the exact 'Invalid data' error shape", async () => {
+    // Confirmed live: this exact shape is what Taiga returns for a
+    // malformed (e.g. double-encoded) body — not a missing OCC
+    // `version`, which surfaces as a 409 instead. The zod refine above
+    // catches the common case client-side; this is the backstop for
+    // any other way the same shape could occur.
+    server.use(
+      http.patch(`${BASE_URL}/api/v1/projects/1`, () =>
+        HttpResponse.json(
+          { non_field_errors: ["Invalid data"] },
+          { status: 400 },
+        ),
+      ),
+    );
+    const { client } = await createConnectedTestClient();
+
+    const result = await client.callTool({
+      name: "taiga_raw_request",
+      arguments: {
+        method: "PATCH",
+        path: "/api/v1/projects/1",
+        body: { name: "same name" },
+      },
+    });
+
+    expect(result.isError).toBe(true);
+    const text = (result.content as Array<{ text: string }>)[0]?.text ?? "";
+    expect(text.toLowerCase()).toContain("hint");
+  });
+
+  it("does not append the hint on an unrelated validation error", async () => {
+    server.use(
+      http.patch(`${BASE_URL}/api/v1/projects/1`, () =>
+        HttpResponse.json(
+          { name: ["This field is required."] },
+          { status: 400 },
+        ),
+      ),
+    );
+    const { client } = await createConnectedTestClient();
+
+    const result = await client.callTool({
+      name: "taiga_raw_request",
+      arguments: { method: "PATCH", path: "/api/v1/projects/1", body: {} },
+    });
+
+    expect(result.isError).toBe(true);
+    const text = (result.content as Array<{ text: string }>)[0]?.text ?? "";
+    expect(text.toLowerCase()).not.toContain("hint");
+  });
+
+  it("appends the hint for POST too, not just PATCH/PUT — the shape isn't method-specific", async () => {
+    server.use(
+      http.post(`${BASE_URL}/api/v1/projects`, () =>
+        HttpResponse.json(
+          { non_field_errors: ["Invalid data"] },
+          { status: 400 },
+        ),
+      ),
+    );
+    const { client } = await createConnectedTestClient();
+
+    const result = await client.callTool({
+      name: "taiga_raw_request",
+      arguments: { method: "POST", path: "/api/v1/projects", body: {} },
+    });
+
+    expect(result.isError).toBe(true);
+    const text = (result.content as Array<{ text: string }>)[0]?.text ?? "";
+    expect(text.toLowerCase()).toContain("hint");
+  });
 });

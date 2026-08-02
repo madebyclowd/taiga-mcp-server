@@ -19,6 +19,22 @@ export interface HttpRequesterOptions {
   fetchImpl?: typeof fetch | undefined;
   /** Max 429 retry attempts before giving up. Default 3, per ADR-004. */
   maxRateLimitAttempts?: number;
+  /**
+   * Max retry attempts for a thrown transport-level error (DNS,
+   * connection reset, timeout — Node's `fetch` surfaces these as a
+   * rejected promise, not an HTTP response). Default 2. Only ever
+   * applied to `GET` — retrying a `POST`/`PATCH`/`PUT`/`DELETE` after a
+   * transport failure risks a double-write if the request actually
+   * reached Taiga before the connection dropped, and this codebase has
+   * no idempotency-key mechanism to make that safe. See
+   * ai-docs/04_audits/taiga-mcp-audit-03-talent-intelligence-field-feedback.md
+   * Finding 3 and its plan-doc addendum for why blind retry-on-write
+   * was rejected.
+   */
+  maxTransportRetryAttempts?: number;
+  /** Base delay for transport-retry backoff (doubles per attempt, same
+   * shape as the 429 backoff). Default 500ms; overridable for tests. */
+  transportRetryBaseDelayMs?: number;
 }
 
 export interface HttpRequester {
@@ -46,6 +62,8 @@ export function createHttpRequester(
   const { authSession, logger } = options;
   const fetchImpl = options.fetchImpl ?? fetch;
   const maxRateLimitAttempts = options.maxRateLimitAttempts ?? 3;
+  const maxTransportRetryAttempts = options.maxTransportRetryAttempts ?? 2;
+  const transportRetryBaseDelayMs = options.transportRetryBaseDelayMs ?? 500;
   const baseUrl = options.baseUrl.endsWith("/")
     ? options.baseUrl.slice(0, -1)
     : options.baseUrl;
@@ -87,9 +105,28 @@ export function createHttpRequester(
     let token = await authSession.getToken();
     let hasRefreshed = false;
     let rateLimitAttempt = 0;
+    let transportRetryAttempt = 0;
 
     for (;;) {
-      const response = await send(reqOptions, token);
+      let response: Response;
+      try {
+        response = await send(reqOptions, token);
+      } catch (error) {
+        if (
+          reqOptions.method !== "GET" ||
+          transportRetryAttempt >= maxTransportRetryAttempts
+        ) {
+          throw error;
+        }
+        const delayMs = transportRetryBaseDelayMs * 2 ** transportRetryAttempt;
+        transportRetryAttempt += 1;
+        logger.warn(
+          { delayMs, attempt: transportRetryAttempt, error: String(error) },
+          "taiga http: transport-level error on GET, retrying",
+        );
+        await sleep(delayMs);
+        continue;
+      }
 
       if (response.status === 401 && !hasRefreshed) {
         hasRefreshed = true;

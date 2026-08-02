@@ -155,6 +155,36 @@ describe("project tools", () => {
     expect(textOf(result)).toEqual({ id: 5, version: 4, name: "Updated" });
   });
 
+  it("project_update accepts module-toggle fields (e.g. is_epics_activated)", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v1/projects/5`, () =>
+        HttpResponse.json({ id: 5, version: 3, is_epics_activated: false }),
+      ),
+      http.patch(`${BASE_URL}/api/v1/projects/5`, async ({ request }) => {
+        const body = await request.json();
+        expect(body).toEqual({ is_epics_activated: true, version: 3 });
+        return HttpResponse.json({
+          id: 5,
+          version: 4,
+          is_epics_activated: true,
+        });
+      }),
+    );
+    const { client } = await createConnectedTestClient();
+
+    const result = await client.callTool({
+      name: "project_update",
+      arguments: { id: 5, is_epics_activated: true },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(textOf(result)).toEqual({
+      id: 5,
+      version: 4,
+      is_epics_activated: true,
+    });
+  });
+
   it("project_delete returns success on 204", async () => {
     server.use(
       http.get(`${BASE_URL}/api/v1/projects/5`, () =>
@@ -293,6 +323,13 @@ describe("verbosity (end-to-end through resource-crud.ts)", () => {
 });
 
 describe("epic extra tools", () => {
+  it("epic_create's description flags the module-visibility sharp edge", async () => {
+    const { client } = await createConnectedTestClient();
+    const { tools } = await client.listTools();
+    const epicCreate = tools.find((t) => t.name === "epic_create");
+    expect(epicCreate?.description).toContain("is_epics_activated");
+  });
+
   it("epic_related_user_stories lists linked stories", async () => {
     server.use(
       http.get(`${BASE_URL}/api/v1/epics/9/related_userstories`, () =>
