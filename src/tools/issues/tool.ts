@@ -14,6 +14,7 @@ const BASE_PATH = "/api/v1/issues";
 export function registerIssueTools(
   server: McpServer,
   client: TaigaClient,
+  requireElicitation = false,
 ): void {
   registerCrudTools({
     server,
@@ -23,6 +24,7 @@ export function registerIssueTools(
     listInput: issueListInput,
     createInput: issueCreateInput,
     updateInput: issueUpdateInput,
+    requireElicitation,
   });
 
   server.registerTool(

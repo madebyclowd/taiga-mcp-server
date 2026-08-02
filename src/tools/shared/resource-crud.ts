@@ -1,9 +1,21 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z, type ZodRawShape } from "zod";
 import type { TaigaClient } from "../../client/taiga-client.js";
+import { confirmDestructiveOp } from "./destructive-confirm.js";
 import { handleTool } from "./helpers.js";
 
 const idShape = { id: z.number().int().describe("Resource id") };
+const deleteShape = {
+  ...idShape,
+  confirm: z
+    .boolean()
+    .optional()
+    .describe(
+      "Set true to actually delete after reviewing the preview from a " +
+        "first call without it. Ignored by elicitation-capable clients, " +
+        "which are prompted interactively instead.",
+    ),
+};
 
 export interface RegisterCrudToolsOptions {
   server: McpServer;
@@ -15,6 +27,8 @@ export interface RegisterCrudToolsOptions {
   listInput: ZodRawShape;
   createInput: ZodRawShape;
   updateInput: ZodRawShape;
+  /** See `ConfirmDestructiveOpOptions.requireElicitation`. Default false. */
+  requireElicitation?: boolean;
 }
 
 /**
@@ -48,6 +62,7 @@ export function registerCrudTools(options: RegisterCrudToolsOptions): void {
     listInput,
     createInput,
     updateInput,
+    requireElicitation,
   } = options;
 
   server.registerTool(
@@ -104,12 +119,33 @@ export function registerCrudTools(options: RegisterCrudToolsOptions): void {
   server.registerTool(
     `${resource}_delete`,
     {
-      description: `Delete a ${resource} by id. This cannot be undone.`,
-      inputSchema: idShape,
+      description:
+        `Delete a ${resource} by id. This cannot be undone. Requires ` +
+        `confirmation: elicitation-capable clients are prompted ` +
+        `interactively; others must call again with confirm: true after ` +
+        `reviewing the preview returned by the first call.`,
+      inputSchema: deleteShape,
     },
-    async (args) =>
-      handleTool(`${resource}_delete`, args, () =>
+    async (args) => {
+      const gate = await confirmDestructiveOp({
+        server,
+        client,
+        basePath,
+        id: args.id,
+        resourceLabel: resource,
+        args,
+        requireElicitation,
+      });
+      if (!gate.proceed) {
+        return {
+          content: [
+            { type: "text", text: gate.message ?? "Not deleted — cancelled." },
+          ],
+        };
+      }
+      return handleTool(`${resource}_delete`, args, () =>
         client.delete(`${basePath}/${String(args.id)}`),
-      ),
+      );
+    },
   );
 }

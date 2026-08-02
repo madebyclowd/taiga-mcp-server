@@ -12,6 +12,7 @@ const BASE_PATH = "/api/v1/projects";
 export function registerProjectTools(
   server: McpServer,
   client: TaigaClient,
+  requireElicitation = false,
 ): void {
   registerCrudTools({
     server,
@@ -21,5 +22,6 @@ export function registerProjectTools(
     listInput: projectListInput,
     createInput: projectCreateInput,
     updateInput: projectUpdateInput,
+    requireElicitation,
   });
 }

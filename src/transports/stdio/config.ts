@@ -1,8 +1,10 @@
 import type { TaigaCredentials } from "../../client/types.js";
+import { parseBooleanEnv } from "../shared/config.js";
 
 export interface ServerConfig {
   baseUrl: string;
   credentials: TaigaCredentials;
+  requireElicitation: boolean;
 }
 
 /**
@@ -20,15 +22,25 @@ export function loadConfigFromEnv(
     );
   }
 
+  const requireElicitation = parseBooleanEnv(env["TAIGA_REQUIRE_ELICITATION"]);
+
   const token = env["TAIGA_TOKEN"];
   if (token) {
-    return { baseUrl, credentials: { kind: "token", token } };
+    return {
+      baseUrl,
+      credentials: { kind: "token", token },
+      requireElicitation,
+    };
   }
 
   const username = env["TAIGA_USERNAME"];
   const password = env["TAIGA_PASSWORD"];
   if (username && password) {
-    return { baseUrl, credentials: { kind: "password", username, password } };
+    return {
+      baseUrl,
+      credentials: { kind: "password", username, password },
+      requireElicitation,
+    };
   }
 
   throw new Error(

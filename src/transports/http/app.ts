@@ -15,6 +15,8 @@ export interface HttpAppOptions {
   maxSessions?: number | undefined;
   /** Passed through to each session's `TaigaClient`; injectable for tests. */
   fetchImpl?: typeof fetch | undefined;
+  /** See `CreateServerOptions.requireElicitation`. Default false. */
+  requireElicitation?: boolean | undefined;
 }
 
 export interface HttpApp {
@@ -49,6 +51,7 @@ export function createHttpApp(options: HttpAppOptions): HttpApp {
     logger: options.logger,
     maxSessions: options.maxSessions,
     fetchImpl: options.fetchImpl,
+    requireElicitation: options.requireElicitation,
   });
 
   async function handler(

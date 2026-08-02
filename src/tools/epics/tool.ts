@@ -10,6 +10,7 @@ const BASE_PATH = "/api/v1/epics";
 export function registerEpicTools(
   server: McpServer,
   client: TaigaClient,
+  requireElicitation = false,
 ): void {
   registerCrudTools({
     server,
@@ -19,6 +20,7 @@ export function registerEpicTools(
     listInput: epicListInput,
     createInput: epicCreateInput,
     updateInput: epicUpdateInput,
+    requireElicitation,
   });
 
   server.registerTool(

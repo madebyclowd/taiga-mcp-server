@@ -1,3 +1,5 @@
+import { parseBooleanEnv } from "../shared/config.js";
+
 export interface HttpServerConfig {
   baseUrl: string;
   port: number;
@@ -6,6 +8,7 @@ export interface HttpServerConfig {
   sessionTtlMs: number;
   /** Caps concurrent sessions — see `session.ts`'s `SessionManager`. */
   maxSessions: number;
+  requireElicitation: boolean;
 }
 
 const DEFAULT_PORT = 3000;
@@ -62,5 +65,14 @@ export function loadHttpConfigFromEnv(
     );
   }
 
-  return { baseUrl, port, allowedOrigins, sessionTtlMs, maxSessions };
+  const requireElicitation = parseBooleanEnv(env["TAIGA_REQUIRE_ELICITATION"]);
+
+  return {
+    baseUrl,
+    port,
+    allowedOrigins,
+    sessionTtlMs,
+    maxSessions,
+    requireElicitation,
+  };
 }

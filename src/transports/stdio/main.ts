@@ -19,7 +19,9 @@ export async function main(): Promise<void> {
       credentials: config.credentials,
       logger,
     });
-    const server = createServer(client);
+    const server = createServer(client, {
+      requireElicitation: config.requireElicitation,
+    });
     const transport = new StdioServerTransport();
     await server.connect(transport);
   } catch (error) {
