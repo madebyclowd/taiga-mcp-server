@@ -88,12 +88,24 @@ To run integration tests against a live Taiga instance:
   `test/unit/client/http.test.ts` instead, per
   [[taiga-mcp-adr-005-testing-and-ci-strategy]]'s own accepted tradeoff
   for exactly this kind of untestable-in-CI behavior.
+- **Not exercised automatically from GitHub-hosted runners at all**, as
+  of 2026-08. Taiga Cloud's network/WAF blocks connections from
+  GitHub Actions' IP ranges outright — confirmed via TCP-level
+  `ETIMEDOUT`/`ENETUNREACH` on both IPv4 and IPv6 against
+  `api.taiga.io`, while the same host responds normally (`200`, <1s)
+  from an ordinary network. This isn't a credentials or rate-limit
+  problem; it's the host refusing the connection at the network level,
+  most likely anti-bot filtering of hosting-provider ASNs. The `pnpm
+test:integration` job in CI now only runs on manual
+  `workflow_dispatch`, not on every push to `main`. Run it locally
+  instead (see above) — that's the reliable way to exercise this suite
+  until/unless a self-hosted runner or an allowlisted IP is available.
 
 ## CI Credential Management & Security
 
 Integration tests are configured in `.github/workflows/ci.yml`.
 
-- **Fork Protection**: Integration tests are restricted to `push` events on `main` and manual `workflow_dispatch`. They do **NOT** run on untrusted `pull_request` triggers from external forks to prevent secret leakage.
+- **Fork Protection**: Integration tests only run via manual `workflow_dispatch`, never on `push` or `pull_request`, so untrusted forks can never trigger a run that would expose secrets.
 - **GitHub Environment**: Credentials are provided via GitHub Actions secrets in the `integration-test` environment:
   - `TAIGA_TEST_BASE_URL`
   - `TAIGA_TEST_PROJECT_SLUG`

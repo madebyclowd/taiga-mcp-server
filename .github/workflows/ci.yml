@@ -44,8 +44,14 @@ jobs:
 
   integration:
     name: Live Integration Suite
-    # Never run on fork PRs to prevent secret exposure (ADR-005)
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Manual-only: Taiga Cloud's network/WAF blocks GitHub-hosted runner IP
+    # ranges (confirmed via TCP-level ETIMEDOUT/ENETUNREACH on both IPv4 and
+    # IPv6, while the same host is reachable from a regular network) — this
+    # job cannot pass reliably from automatic CI, so it no longer gates
+    # pushes to main. Run it manually (workflow_dispatch) from a network
+    # Taiga will actually accept connections from, or run
+    # `pnpm test:integration` locally.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: integration-test
     steps:
