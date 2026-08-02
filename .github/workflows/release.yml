@@ -31,6 +31,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # npm's OIDC/Trusted Publishing support needs a recent npm CLI —
+      # newer than what some setup-node Node versions bundle. Harmless
+      # with the current token-based publish too, and removes the
+      # question entirely once we switch to Trusted Publishing.
+      - run: npm install -g npm@latest
+
       # Defense in depth: gate the publish on the same checks CI runs,
       # independent of branch-protection settings (a repo-level config
       # this workflow can't see) — a push to main should never be able
