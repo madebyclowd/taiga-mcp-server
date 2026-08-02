@@ -62,7 +62,11 @@ jobs:
       # just leaves the version PR as-is and publishes nothing).
       - name: Generate SBOM
         if: steps.changesets.outputs.published == 'true'
-        run: pnpm dlx @cyclonedx/cyclonedx-npm --output-file bom.json
+        # --ignore-npm-errors: cyclonedx-npm shells out to `npm ls`, which
+        # reports spurious missing/invalid deps against pnpm's node_modules
+        # layout (symlinked .pnpm structure, not npm's flat one) — the deps
+        # are fine, `npm ls` just doesn't understand pnpm's tree shape.
+        run: pnpm dlx @cyclonedx/cyclonedx-npm --ignore-npm-errors --output-file bom.json
 
       - name: Upload SBOM artifact
         if: steps.changesets.outputs.published == 'true'
