@@ -5,7 +5,7 @@ on:
     branches: [main]
   pull_request:
   schedule:
-    - cron: '0 6 * * 1' # weekly, Monday 06:00 UTC — catches CVEs disclosed against dependencies after the last commit touched them
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC — catches CVEs disclosed against dependencies after the last commit touched them
   workflow_dispatch:
 
 permissions:
