@@ -69,18 +69,18 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.31.1",
-    "@eslint/js": "^9.39.5",
-    "@types/node": "^22.20.5",
-    "eslint": "^9.39.5",
-    "eslint-config-prettier": "^9.1.2",
+    "@changesets/cli": "^3.0.3",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
-    "lint-staged": "^15.5.2",
-    "msw": "^2.15.0",
+    "lint-staged": "^17.6.0",
+    "msw": "^3.0.3",
     "prettier": "^3.9.9",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.71.1",
-    "vite": "^6.4.4",
+    "vite": "^8.3.4",
     "vitest": "^5.0.3"
   },
   "pnpm": {
